@@ -5,31 +5,30 @@ import { StickyCta } from "@/components/site/StickyCta";
 import { Hero } from "@/components/sections/Hero";
 import {
   TrustBar,
-  Services,
   WhyUs,
   HowItWorks,
   About,
-  Pricing,
   Testimonials,
   ServiceArea,
   Faq,
   Contact,
 } from "@/components/sections/Sections";
+import { Offerings, PricingAndMembership } from "@/components/sections/Offerings";
 import { BookingForm } from "@/components/sections/BookingForm";
 import { useI18n } from "@/lib/i18n";
-import { BUSINESS } from "@/content/business";
+import { BUSINESS, SERVICE_AREAS } from "@/content/business";
 
 const localBusinessSchema = {
   "@context": "https://schema.org",
   "@type": "HealthAndBeautyBusiness",
   name: "SPA NAZ",
   description:
-    "SPA NAZ oferă servicii profesionale de masaj la domiciliu în București: masaj de relaxare, deep tissue, aromaterapie și masaj pentru cupluri.",
-  areaServed: { "@type": "City", name: "București" },
+    "SPA NAZ oferă masaj profesional la domiciliu în București: relaxare, deep tissue, drenaj limfatic și aromaterapie.",
+  areaServed: SERVICE_AREAS.map((name) => ({ "@type": "AdministrativeArea", name })),
   address: { "@type": "PostalAddress", addressLocality: "București", addressCountry: "RO" },
   telephone: BUSINESS.phoneHref,
   email: BUSINESS.email,
-  priceRange: "€€",
+  priceRange: "200-340 RON",
   availableLanguage: ["ro", "en"],
 };
 
@@ -40,13 +39,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "SPA NAZ oferă servicii profesionale de masaj la domiciliu în București. Relaxare, confort și o experiență personală direct la tine acasă. Rezervă acum.",
+          "SPA NAZ oferă masaj profesional la domiciliu în Sectoarele 1, 4, 5 și 6 din București. Relaxare, deep tissue, drenaj limfatic și aromaterapie.",
       },
       { property: "og:title", content: "SPA NAZ | Masaj la Domiciliu în București" },
       {
         property: "og:description",
         content:
-          "Masaj profesional la domiciliu în București: relaxare, deep tissue, aromaterapie. Rezervă rapid pe WhatsApp.",
+          "Masaj profesional la domiciliu în București: relaxare, deep tissue, drenaj limfatic și aromaterapie. Rezervă online sau pe WhatsApp.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "/" },
@@ -83,11 +82,11 @@ function Index() {
       <main>
         <Hero />
         <TrustBar />
-        <Services />
+        <Offerings />
         <WhyUs />
         <HowItWorks />
         <About />
-        <Pricing />
+        <PricingAndMembership />
         <Testimonials />
         <ServiceArea />
         <Faq />
