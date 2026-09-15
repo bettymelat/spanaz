@@ -29,8 +29,8 @@ const integerValue = (value: number) => ({ integerValue: String(value) });
 const timestampValue = (value: string) => ({ timestampValue: value });
 
 export async function createBooking(input: BookingRequest): Promise<{ id: string }> {
-  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim();
-  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY?.trim();
+  const projectId = import.meta.env["VITE_FIREBASE_PROJECT_ID"]?.trim();
+  const apiKey = import.meta.env["VITE_FIREBASE_API_KEY"]?.trim();
 
   if (!projectId || !apiKey) throw new BookingConfigurationError();
 
