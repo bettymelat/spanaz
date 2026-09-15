@@ -1,4 +1,4 @@
-import { Instagram, Facebook, Music2 } from "lucide-react";
+import { Facebook, Instagram, Music2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { BUSINESS } from "@/content/business";
 
@@ -15,6 +15,12 @@ export function Footer() {
     { href: "/#contact", label: t.nav.contact },
   ];
 
+  const socials = [
+    { href: BUSINESS.social.instagram, label: "Instagram", Icon: Instagram },
+    { href: BUSINESS.social.facebook, label: "Facebook", Icon: Facebook },
+    { href: BUSINESS.social.tiktok, label: "TikTok", Icon: Music2 },
+  ].filter((item) => item.href && item.href !== "#");
+
   return (
     <footer className="border-t border-border bg-sand">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-4">
@@ -24,15 +30,18 @@ export function Footer() {
           <p className="mt-4 text-sm text-muted-foreground">
             {BUSINESS.city}, {BUSINESS.country}
           </p>
+          <a href={`mailto:${BUSINESS.bookingEmail}`} className="mt-2 inline-block text-sm text-muted-foreground underline-offset-4 hover:underline">
+            {BUSINESS.bookingEmail}
+          </a>
         </div>
 
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-widest text-foreground">{t.footer.linksTitle}</h3>
           <ul className="mt-4 space-y-2.5">
-            {links.map((l) => (
-              <li key={l.label}>
-                <a href={l.href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                  {l.label}
+            {links.map((link) => (
+              <li key={link.label}>
+                <a href={link.href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                  {link.label}
                 </a>
               </li>
             ))}
@@ -40,19 +49,28 @@ export function Footer() {
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-widest text-foreground">{t.footer.socialTitle}</h3>
-          <div className="mt-4 flex gap-3">
-            <a href={BUSINESS.social.instagram} aria-label="Instagram" className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground">
-              <Instagram className="h-4 w-4" />
-            </a>
-            <a href={BUSINESS.social.facebook} aria-label="Facebook" className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground">
-              <Facebook className="h-4 w-4" />
-            </a>
-            <a href={BUSINESS.social.tiktok} aria-label="TikTok" className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground">
-              <Music2 className="h-4 w-4" />
-            </a>
-          </div>
-          <h3 className="mt-8 text-sm font-semibold uppercase tracking-widest text-foreground">{t.footer.legalTitle}</h3>
+          {socials.length > 0 && (
+            <>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-foreground">{t.footer.socialTitle}</h3>
+              <div className="mt-4 flex gap-3">
+                {socials.map(({ href, label, Icon }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </a>
+                ))}
+              </div>
+            </>
+          )}
+          <h3 className={`${socials.length > 0 ? "mt-8" : ""} text-sm font-semibold uppercase tracking-widest text-foreground`}>
+            {t.footer.legalTitle}
+          </h3>
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
             <li>{t.footer.privacy}</li>
             <li>{t.footer.terms}</li>
