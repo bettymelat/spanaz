@@ -8,6 +8,18 @@ type Errors = Partial<Record<string, string>>;
 const inputClass =
   "w-full rounded-xl border border-input bg-card px-4 py-3 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/40";
 
+function Field({ id, label, children, error }: { id: string; label: string; children: React.ReactNode; error?: string }) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-foreground">
+        {label}
+      </label>
+      {children}
+      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
 export function BookingForm() {
   const { t, lang } = useI18n();
   const [errors, setErrors] = useState<Errors>({});
@@ -59,16 +71,6 @@ export function BookingForm() {
       </div>
     );
   }
-
-  const Field = ({ id, label, children, error }: { id: string; label: string; children: React.ReactNode; error?: string }) => (
-    <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-foreground">
-        {label}
-      </label>
-      {children}
-      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
-    </div>
-  );
 
   return (
     <form onSubmit={handleSubmit} noValidate className="surface-card mx-auto max-w-3xl p-6 sm:p-8">
