@@ -3,12 +3,13 @@ import { CheckCircle2, MessageCircle } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { SERVICES, whatsappLink } from "@/content/business";
 
-type Errors = Partial<Record<string, string>>;
+type FieldName = "name" | "phone" | "service" | "duration" | "date" | "address" | "consent";
+type Errors = { [K in FieldName]?: string | undefined };
 
 const inputClass =
   "w-full rounded-xl border border-input bg-card px-4 py-3 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/40";
 
-function Field({ id, label, children, error }: { id: string; label: string; children: React.ReactNode; error?: string }) {
+function Field({ id, label, children, error }: { id: string; label: string; children: React.ReactNode; error?: string | undefined }) {
   return (
     <div>
       <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-foreground">
@@ -31,13 +32,13 @@ export function BookingForm() {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const next: Errors = {};
-    const required = ["name", "phone", "service", "duration", "date", "address"];
+    const required: FieldName[] = ["name", "phone", "service", "duration", "date", "address"];
     for (const field of required) {
-      if (!String(form.get(field) ?? "").trim()) next[field] = t.booking.errors.required;
+      if (!String(form.get(field) ?? "").trim()) next[field] = t.booking.errors["required"];
     }
     const phone = String(form.get("phone") ?? "").trim();
-    if (phone && !/^[+\d][\d\s().-]{6,19}$/.test(phone)) next.phone = t.booking.errors.phone;
-    if (!form.get("consent")) next.consent = t.booking.errors.consent;
+    if (phone && !/^[+\d][\d\s().-]{6,19}$/.test(phone)) next["phone"] = t.booking.errors["phone"];
+    if (!form.get("consent")) next["consent"] = t.booking.errors["consent"];
 
     setErrors(next);
     if (Object.keys(next).length > 0) return;
@@ -75,16 +76,16 @@ export function BookingForm() {
   return (
     <form onSubmit={handleSubmit} noValidate className="surface-card mx-auto max-w-3xl p-6 sm:p-8">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="name" label={t.booking.fields.name} error={errors.name}>
+        <Field id="name" label={t.booking.fields.name} error={errors["name"]}>
           <input id="name" name="name" autoComplete="name" className={inputClass} />
         </Field>
-        <Field id="phone" label={t.booking.fields.phone} error={errors.phone}>
+        <Field id="phone" label={t.booking.fields.phone} error={errors["phone"]}>
           <input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" className={inputClass} />
         </Field>
         <Field id="whatsapp" label={t.booking.fields.whatsapp}>
           <input id="whatsapp" name="whatsapp" type="tel" inputMode="tel" className={inputClass} />
         </Field>
-        <Field id="service" label={t.booking.fields.service} error={errors.service}>
+        <Field id="service" label={t.booking.fields.service} error={errors["service"]}>
           <select id="service" name="service" defaultValue="" className={inputClass}>
             <option value="" disabled>
               {t.booking.select}
@@ -96,7 +97,7 @@ export function BookingForm() {
             ))}
           </select>
         </Field>
-        <Field id="duration" label={t.booking.fields.duration} error={errors.duration}>
+        <Field id="duration" label={t.booking.fields.duration} error={errors["duration"]}>
           <select id="duration" name="duration" defaultValue="" className={inputClass}>
             <option value="" disabled>
               {t.booking.select}
@@ -117,14 +118,14 @@ export function BookingForm() {
             ))}
           </select>
         </Field>
-        <Field id="date" label={t.booking.fields.date} error={errors.date}>
+        <Field id="date" label={t.booking.fields.date} error={errors["date"]}>
           <input id="date" name="date" type="date" className={inputClass} />
         </Field>
         <Field id="time" label={t.booking.fields.time}>
           <input id="time" name="time" type="time" className={inputClass} />
         </Field>
         <div className="sm:col-span-2">
-          <Field id="address" label={t.booking.fields.address} error={errors.address}>
+          <Field id="address" label={t.booking.fields.address} error={errors["address"]}>
             <input id="address" name="address" autoComplete="street-address" className={inputClass} />
           </Field>
         </div>
@@ -139,7 +140,7 @@ export function BookingForm() {
         <input id="consent" name="consent" type="checkbox" className="mt-1 h-5 w-5 shrink-0 rounded border-input accent-[var(--primary)]" />
         <span>{t.booking.consent}</span>
       </label>
-      {errors.consent && <p className="mt-1 text-xs text-destructive">{errors.consent}</p>}
+      {errors["consent"] && <p className="mt-1 text-xs text-destructive">{errors["consent"]}</p>}
 
       <button
         type="submit"
