@@ -41,11 +41,45 @@ export const whatsappLink = (lang: "ro" | "en" = "ro", custom?: string) =>
 
 export type ServiceKey = "relaxare" | "deepTissue" | "limfatic" | "aromaterapie";
 
-export const SERVICES: { key: ServiceKey }[] = [
-  { key: "relaxare" },
-  { key: "deepTissue" },
-  { key: "limfatic" },
-  { key: "aromaterapie" },
+type LocalizedText = { ro: string; en: string };
+
+export const SERVICES: {
+  key: ServiceKey;
+  name: LocalizedText;
+  description: LocalizedText;
+}[] = [
+  {
+    key: "relaxare",
+    name: { ro: "Masaj de relaxare", en: "Relaxation massage" },
+    description: {
+      ro: "Masaj calmant pentru reducerea stresului, relaxarea corpului și o stare generală de bine.",
+      en: "A calming massage designed to reduce stress, relax the body and support overall wellbeing.",
+    },
+  },
+  {
+    key: "deepTissue",
+    name: { ro: "Masaj deep tissue", en: "Deep tissue massage" },
+    description: {
+      ro: "Presiune mai profundă și lucru focalizat pentru tensiune, rigiditate și zone musculare solicitate.",
+      en: "Deeper pressure and focused work for tension, stiffness and overworked muscle areas.",
+    },
+  },
+  {
+    key: "limfatic",
+    name: { ro: "Drenaj limfatic", en: "Lymphatic drainage" },
+    description: {
+      ro: "Tehnici blânde și ritmice concepute pentru a susține circulația limfatică și relaxarea.",
+      en: "Gentle, rhythmic techniques designed to support lymphatic circulation and relaxation.",
+    },
+  },
+  {
+    key: "aromaterapie",
+    name: { ro: "Masaj cu aromaterapie", en: "Aromatherapy massage" },
+    description: {
+      ro: "Masaj relaxant completat de uleiuri aromatice pentru o experiență senzorială calmă.",
+      en: "A relaxing massage enhanced with aromatic oils for a calm, sensory experience.",
+    },
+  },
 ];
 
 /**
