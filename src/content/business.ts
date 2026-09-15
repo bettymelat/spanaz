@@ -60,10 +60,10 @@ export const SERVICES: {
 }[] = [
   {
     key: "relaxare",
-    name: { ro: "Masaj de relaxare", en: "Relaxation massage" },
+    name: { ro: "Experiența de Relaxare", en: "The Relaxation Experience" },
     description: {
-      ro: "Masaj calmant pentru reducerea stresului, relaxarea corpului și o stare generală de bine.",
-      en: "A calming massage designed to reduce stress, relax the body and support overall wellbeing.",
+      ro: "Pentru a încetini ritmul, a elibera tensiunea de zi cu zi și a te deconecta complet.",
+      en: "For slowing down, releasing everyday tension and completely switching off.",
     },
     durations: standardDurations,
   },
@@ -107,9 +107,8 @@ export const MEMBERSHIPS = [
 
 export const SERVICE_AREAS = ["Sector 1", "Sector 4", "Sector 5", "Sector 6"] as const;
 
-/** Replace with real client reviews when available. */
-export const TESTIMONIALS = [
-  { stars: 5, quote: "[Testimonialul clientului va fi adăugat aici.]", author: "[Nume client]" },
-  { stars: 5, quote: "[Testimonialul clientului va fi adăugat aici.]", author: "[Nume client]" },
-  { stars: 5, quote: "[Testimonialul clientului va fi adăugat aici.]", author: "[Nume client]" },
-];
+/**
+ * Add only genuine, permissioned client reviews here.
+ * The homepage intentionally does not fabricate testimonials.
+ */
+export const TESTIMONIALS: { stars: number; quote: string; author: string }[] = [];
