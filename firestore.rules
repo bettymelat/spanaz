@@ -1,6 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function validService(data) {
+      return
+        (data.serviceKey == 'relaxare' && data.serviceName in ['Masaj de relaxare', 'Relaxation massage']) ||
+        (data.serviceKey == 'deepTissue' && data.serviceName in ['Masaj deep tissue', 'Deep tissue massage']) ||
+        (data.serviceKey == 'spateGat' && data.serviceName in ['Drenaj limfatic', 'Lymphatic drainage']) ||
+        (data.serviceKey == 'aromaterapie' && data.serviceName in ['Masaj cu aromaterapie', 'Aromatherapy massage']);
+    }
+
+    function validSession(data) {
+      return
+        (data.sessionKey == 'relax' && data.sessionName == 'Relax' && data.durationMinutes == 60 && data.priceLei == 200) ||
+        (data.sessionKey == 'restore' && data.sessionName == 'Restore' && data.durationMinutes == 90 && data.priceLei == 270) ||
+        (data.sessionKey == 'signature' && data.sessionName == 'Signature' && data.durationMinutes == 120 && data.priceLei == 340);
+    }
+
     match /bookings/{bookingId} {
       // Public website visitors may create a tightly validated booking request.
       // They can never list, read, edit, confirm, or delete booking records.
@@ -35,13 +50,8 @@ service cloud.firestore {
         request.resource.data.whatsapp is string &&
         request.resource.data.whatsapp.size() >= 7 &&
         request.resource.data.whatsapp.size() <= 24 &&
-        request.resource.data.serviceKey in ['relaxare', 'deepTissue', 'spateGat', 'aromaterapie'] &&
-        request.resource.data.serviceName is string &&
-        request.resource.data.serviceName.size() <= 80 &&
-        request.resource.data.sessionKey in ['relax', 'restore', 'signature'] &&
-        request.resource.data.sessionName in ['Relax', 'Restore', 'Signature'] &&
-        request.resource.data.durationMinutes in [60, 90, 120] &&
-        request.resource.data.priceLei in [200, 270, 340] &&
+        validService(request.resource.data) &&
+        validSession(request.resource.data) &&
         request.resource.data.appointmentDate is string &&
         request.resource.data.appointmentDate.size() == 10 &&
         request.resource.data.appointmentTime is string &&
