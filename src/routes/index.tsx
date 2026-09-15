@@ -9,11 +9,11 @@ import {
   HowItWorks,
   About,
   Testimonials,
-  ServiceArea,
   Faq,
   Contact,
 } from "@/components/sections/Sections";
 import { Offerings, PricingAndMembership } from "@/components/sections/Offerings";
+import { Coverage } from "@/components/sections/Coverage";
 import { BookingForm } from "@/components/sections/BookingForm";
 import { useI18n } from "@/lib/i18n";
 import { BUSINESS, SERVICE_AREAS } from "@/content/business";
@@ -88,7 +88,7 @@ function Index() {
         <About />
         <PricingAndMembership />
         <Testimonials />
-        <ServiceArea />
+        <Coverage />
         <Faq />
         <BookingSection />
         <Contact />
