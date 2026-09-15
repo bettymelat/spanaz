@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from "react";
-import { CheckCircle2, MessageCircle } from "lucide-react";
+import { useMemo, useState, type FormEvent } from "react";
+import { AlertCircle, CheckCircle2, Loader2, MessageCircle } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
-import { SERVICES, whatsappLink } from "@/content/business";
+import { SERVICES, SERVICE_AREAS, SESSION_OPTIONS, whatsappLink } from "@/content/business";
+import { BookingConfigurationError, createBooking } from "@/lib/booking-store";
 
-type FieldName = "name" | "phone" | "service" | "duration" | "date" | "address" | "consent";
+type FieldName = "name" | "phone" | "service" | "session" | "date" | "time" | "sector" | "address" | "consent";
 type Errors = { [K in FieldName]?: string | undefined };
 
 const inputClass =
@@ -21,28 +22,96 @@ function Field({ id, label, children, error }: { id: string; label: string; chil
   );
 }
 
+function localDateInputValue() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export function BookingForm() {
   const { t, lang } = useI18n();
   const [errors, setErrors] = useState<Errors>({});
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [bookingId, setBookingId] = useState("");
+  const [submitError, setSubmitError] = useState("");
+  const minDate = useMemo(localDateInputValue, []);
 
-  const durations = Array.from(new Set(SERVICES.flatMap((s) => s.durations.map((d) => d.minutes)))).sort((a, b) => a - b);
+  const labels =
+    lang === "ro"
+      ? {
+          session: "Sesiune",
+          sector: "Sector",
+          onlineError: "Rezervarea online nu a putut fi trimisă. Încearcă din nou sau rezervă direct pe WhatsApp.",
+          configError: "Rezervarea online este în curs de configurare. Te rugăm să rezervi momentan pe WhatsApp.",
+          reference: "Referință rezervare",
+        }
+      : {
+          session: "Session",
+          sector: "Sector",
+          onlineError: "We could not submit your online booking. Please try again or book directly on WhatsApp.",
+          configError: "Online booking is being configured. Please book through WhatsApp for now.",
+          reference: "Booking reference",
+        };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = new FormData(e.currentTarget);
+    if (submitting) return;
+
+    const formElement = e.currentTarget;
+    const form = new FormData(formElement);
     const next: Errors = {};
-    const required: FieldName[] = ["name", "phone", "service", "duration", "date", "address"];
+    const required: FieldName[] = ["name", "phone", "service", "session", "date", "time", "sector", "address"];
     for (const field of required) {
-      if (!String(form.get(field) ?? "").trim()) next[field] = t.booking.errors["required"];
+      if (!String(form.get(field) ?? "").trim()) next[field] = t.booking.errors.required;
     }
+
     const phone = String(form.get("phone") ?? "").trim();
-    if (phone && !/^[+\d][\d\s().-]{6,19}$/.test(phone)) next["phone"] = t.booking.errors["phone"];
-    if (!form.get("consent")) next["consent"] = t.booking.errors["consent"];
+    if (phone && !/^[+\d][\d\s().-]{6,19}$/.test(phone)) next.phone = t.booking.errors.phone;
+    if (!form.get("consent")) next.consent = t.booking.errors.consent;
+
+    const serviceKey = String(form.get("service") ?? "");
+    const sessionKey = String(form.get("session") ?? "");
+    const service = SERVICES.find((item) => item.key === serviceKey);
+    const session = SESSION_OPTIONS.find((item) => item.key === sessionKey);
+    if (!service) next.service = t.booking.errors.required;
+    if (!session) next.session = t.booking.errors.required;
 
     setErrors(next);
-    if (Object.keys(next).length > 0) return;
-    setSent(true);
+    setSubmitError("");
+    if (Object.keys(next).length > 0 || !service || !session) return;
+
+    setSubmitting(true);
+    try {
+      const result = await createBooking({
+        name: String(form.get("name") ?? "").trim(),
+        phone,
+        whatsapp: String(form.get("whatsapp") ?? "").trim() || phone,
+        serviceKey: service.key,
+        serviceName: service.name[lang],
+        sessionKey: session.key,
+        sessionName: session.name,
+        durationMinutes: session.minutes,
+        priceLei: session.priceLei,
+        date: String(form.get("date") ?? ""),
+        time: String(form.get("time") ?? ""),
+        sector: String(form.get("sector") ?? ""),
+        address: String(form.get("address") ?? "").trim(),
+        people: Number(form.get("people") ?? 1),
+        message: String(form.get("message") ?? "").trim().slice(0, 1000),
+        language: lang,
+      });
+      setBookingId(result.id);
+      setSent(true);
+      formElement.reset();
+    } catch (error) {
+      console.error("Booking submission failed", error);
+      setSubmitError(error instanceof BookingConfigurationError ? labels.configError : labels.onlineError);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (sent) {
@@ -51,6 +120,11 @@ export function BookingForm() {
         <CheckCircle2 className="mx-auto h-10 w-10 text-gold" />
         <h3 className="mt-4 text-2xl">{t.booking.successTitle}</h3>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t.booking.successBody}</p>
+        {bookingId && (
+          <p className="mt-3 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+            {labels.reference}: {bookingId}
+          </p>
+        )}
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <a
             href={whatsappLink(lang)}
@@ -63,7 +137,10 @@ export function BookingForm() {
           </a>
           <button
             type="button"
-            onClick={() => setSent(false)}
+            onClick={() => {
+              setSent(false);
+              setBookingId("");
+            }}
             className="rounded-full border border-primary px-6 py-3.5 text-sm font-medium text-primary"
           >
             {t.booking.successAgain}
@@ -76,35 +153,32 @@ export function BookingForm() {
   return (
     <form onSubmit={handleSubmit} noValidate className="surface-card mx-auto max-w-3xl p-6 sm:p-8">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="name" label={t.booking.fields.name} error={errors["name"]}>
+        <Field id="name" label={t.booking.fields.name} error={errors.name}>
           <input id="name" name="name" autoComplete="name" className={inputClass} />
         </Field>
-        <Field id="phone" label={t.booking.fields.phone} error={errors["phone"]}>
+        <Field id="phone" label={t.booking.fields.phone} error={errors.phone}>
           <input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" className={inputClass} />
         </Field>
         <Field id="whatsapp" label={t.booking.fields.whatsapp}>
           <input id="whatsapp" name="whatsapp" type="tel" inputMode="tel" className={inputClass} />
         </Field>
-        <Field id="service" label={t.booking.fields.service} error={errors["service"]}>
+        <Field id="service" label={t.booking.fields.service} error={errors.service}>
           <select id="service" name="service" defaultValue="" className={inputClass}>
             <option value="" disabled>
               {t.booking.select}
             </option>
-            {SERVICES.map((s) => (
-              <option key={s.key} value={t.services.items[s.key].name}>
-                {t.services.items[s.key].name}
+            {SERVICES.map((service) => (
+              <option key={service.key} value={service.key}>
+                {service.name[lang]}
               </option>
             ))}
           </select>
         </Field>
-        <Field id="duration" label={t.booking.fields.duration} error={errors["duration"]}>
-          <select id="duration" name="duration" defaultValue="" className={inputClass}>
-            <option value="" disabled>
-              {t.booking.select}
-            </option>
-            {durations.map((d) => (
-              <option key={d} value={d}>
-                {d} {t.pricing.minutes}
+        <Field id="session" label={labels.session} error={errors.session}>
+          <select id="session" name="session" defaultValue="restore" className={inputClass}>
+            {SESSION_OPTIONS.map((session) => (
+              <option key={session.key} value={session.key}>
+                {session.featured ? "★ " : ""}{session.name} · {session.minutes} min · {session.priceLei} lei
               </option>
             ))}
           </select>
@@ -118,17 +192,27 @@ export function BookingForm() {
             ))}
           </select>
         </Field>
-        <Field id="date" label={t.booking.fields.date} error={errors["date"]}>
-          <input id="date" name="date" type="date" className={inputClass} />
+        <Field id="date" label={t.booking.fields.date} error={errors.date}>
+          <input id="date" name="date" type="date" min={minDate} className={inputClass} />
         </Field>
-        <Field id="time" label={t.booking.fields.time}>
+        <Field id="time" label={t.booking.fields.time} error={errors.time}>
           <input id="time" name="time" type="time" className={inputClass} />
         </Field>
-        <div className="sm:col-span-2">
-          <Field id="address" label={t.booking.fields.address} error={errors["address"]}>
-            <input id="address" name="address" autoComplete="street-address" className={inputClass} />
-          </Field>
-        </div>
+        <Field id="sector" label={labels.sector} error={errors.sector}>
+          <select id="sector" name="sector" defaultValue="" className={inputClass}>
+            <option value="" disabled>
+              {t.booking.select}
+            </option>
+            {SERVICE_AREAS.map((sector) => (
+              <option key={sector} value={sector}>
+                {sector}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field id="address" label={t.booking.fields.address} error={errors.address}>
+          <input id="address" name="address" autoComplete="street-address" className={inputClass} />
+        </Field>
         <div className="sm:col-span-2">
           <Field id="message" label={t.booking.fields.message}>
             <textarea id="message" name="message" rows={4} maxLength={1000} className={inputClass} />
@@ -140,12 +224,21 @@ export function BookingForm() {
         <input id="consent" name="consent" type="checkbox" className="mt-1 h-5 w-5 shrink-0 rounded border-input accent-[var(--primary)]" />
         <span>{t.booking.consent}</span>
       </label>
-      {errors["consent"] && <p className="mt-1 text-xs text-destructive">{errors["consent"]}</p>}
+      {errors.consent && <p className="mt-1 text-xs text-destructive">{errors.consent}</p>}
+
+      {submitError && (
+        <div className="mt-5 flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{submitError}</span>
+        </div>
+      )}
 
       <button
         type="submit"
-        className="mt-6 w-full rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground shadow-soft transition-opacity hover:opacity-90"
+        disabled={submitting}
+        className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-4 text-sm font-medium text-primary-foreground shadow-soft transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
       >
+        {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
         {t.booking.submit}
       </button>
 
