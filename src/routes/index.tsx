@@ -3,17 +3,10 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { StickyCta } from "@/components/site/StickyCta";
 import { Hero } from "@/components/sections/Hero";
-import {
-  TrustBar,
-  WhyUs,
-  HowItWorks,
-  About,
-  Testimonials,
-  Faq,
-  Contact,
-} from "@/components/sections/Sections";
+import { TrustBar, WhyUs, HowItWorks, About, Contact } from "@/components/sections/Sections";
 import { Offerings, PricingAndMembership } from "@/components/sections/Offerings";
 import { Coverage } from "@/components/sections/Coverage";
+import { SpaFaq } from "@/components/sections/SpaFaq";
 import { BookingForm } from "@/components/sections/BookingForm";
 import { useI18n } from "@/lib/i18n";
 import { BUSINESS, SERVICE_AREAS } from "@/content/business";
@@ -87,9 +80,8 @@ function Index() {
         <HowItWorks />
         <About />
         <PricingAndMembership />
-        <Testimonials />
         <Coverage />
-        <Faq />
+        <SpaFaq />
         <BookingSection />
         <Contact />
       </main>
