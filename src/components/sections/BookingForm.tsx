@@ -44,15 +44,15 @@ export function BookingForm() {
       ? {
           session: "Sesiune",
           sector: "Sector",
-          onlineError: "Rezervarea online nu a putut fi trimisă. Încearcă din nou sau rezervă direct pe WhatsApp.",
-          configError: "Rezervarea online este în curs de configurare. Te rugăm să rezervi momentan pe WhatsApp.",
+          onlineError: "Rezervarea nu a putut fi trimisă acum. Încearcă din nou sau contactează SPA NAZ pe WhatsApp.",
+          configError: "Rezervarea nu a putut fi trimisă acum. Încearcă din nou sau contactează SPA NAZ pe WhatsApp.",
           reference: "Referință rezervare",
         }
       : {
           session: "Session",
           sector: "Sector",
-          onlineError: "We could not submit your online booking. Please try again or book directly on WhatsApp.",
-          configError: "Online booking is being configured. Please book through WhatsApp for now.",
+          onlineError: "We couldn't send your booking request right now. Please try again or contact SPA NAZ on WhatsApp.",
+          configError: "We couldn't send your booking request right now. Please try again or contact SPA NAZ on WhatsApp.",
           reference: "Booking reference",
         };
 
