@@ -2,9 +2,39 @@
 
 The website stores appointment requests in a Firestore collection named `bookings`.
 
+## Fast setup
+
+The repository includes an idempotent bootstrap script that can create or reuse the Firebase project, create the default Firestore database, register the SpaNaz Web App, deploy `firestore.rules`, and write the required web values to `.env.local`.
+
+From the repository root:
+
+```bash
+bash scripts/setup-firebase.sh <firebase-project-id>
+```
+
+Example:
+
+```bash
+bash scripts/setup-firebase.sh spanaz-ro-prod
+```
+
+The default Firestore region is `europe-central2`. To choose another region, pass it as the second argument:
+
+```bash
+bash scripts/setup-firebase.sh spanaz-ro-prod europe-west3
+```
+
+The script intentionally asks for confirmation immediately before creating a new Firestore database because its location cannot be changed later. For a non-interactive run, set `ASSUME_YES=1`.
+
+```bash
+ASSUME_YES=1 bash scripts/setup-firebase.sh spanaz-ro-prod europe-central2
+```
+
+After the script completes, copy the two `VITE_FIREBASE_*` values from `.env.local` into the production/Lovable environment and redeploy the site.
+
 ## 1. Create / select the Firebase project
 
-Enable **Cloud Firestore** in the Firebase console. Production mode is fine because this repository provides explicit rules in `firestore.rules`.
+If you do not use the script, create or select a Firebase project manually and enable **Cloud Firestore**. Production mode is fine because this repository provides explicit rules in `firestore.rules`.
 
 ## 2. Configure the website
 
@@ -25,8 +55,7 @@ The repository includes `firebase.json` and `firestore.rules`.
 
 ```bash
 firebase login
-firebase use <your-project-id>
-firebase deploy --only firestore:rules
+firebase deploy --only firestore:rules --project <your-project-id>
 ```
 
 The public website is allowed to **create** a validated booking request only. Public clients cannot list, read, edit, confirm, or delete bookings.
