@@ -24,5 +24,8 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Validate Firebase setup script
+        run: bash -n scripts/setup-firebase.sh
+
       - name: Production build
         run: bun run build
