@@ -39,14 +39,24 @@ export const whatsappLink = (lang: "ro" | "en" = "ro", custom?: string) =>
     custom ?? WHATSAPP_MESSAGE[lang],
   )}`;
 
-export type ServiceKey = "relaxare" | "deepTissue" | "limfatic" | "aromaterapie";
+export const SESSION_OPTIONS = [
+  { key: "relax", name: "Relax", minutes: 60, priceLei: 200, featured: false },
+  { key: "restore", name: "Restore", minutes: 90, priceLei: 270, featured: true },
+  { key: "signature", name: "Signature", minutes: 120, priceLei: 340, featured: false },
+] as const;
 
+export type ServiceKey = "relaxare" | "deepTissue" | "spateGat" | "aromaterapie";
 type LocalizedText = { ro: string; en: string };
+const standardDurations = SESSION_OPTIONS.map((session) => ({
+  minutes: session.minutes,
+  price: `${session.featured ? "★ " : ""}${session.priceLei} lei`,
+}));
 
 export const SERVICES: {
   key: ServiceKey;
   name: LocalizedText;
   description: LocalizedText;
+  durations: { minutes: number; price: string }[];
 }[] = [
   {
     key: "relaxare",
@@ -55,6 +65,7 @@ export const SERVICES: {
       ro: "Masaj calmant pentru reducerea stresului, relaxarea corpului și o stare generală de bine.",
       en: "A calming massage designed to reduce stress, relax the body and support overall wellbeing.",
     },
+    durations: standardDurations,
   },
   {
     key: "deepTissue",
@@ -63,14 +74,16 @@ export const SERVICES: {
       ro: "Presiune mai profundă și lucru focalizat pentru tensiune, rigiditate și zone musculare solicitate.",
       en: "Deeper pressure and focused work for tension, stiffness and overworked muscle areas.",
     },
+    durations: standardDurations,
   },
   {
-    key: "limfatic",
+    key: "spateGat",
     name: { ro: "Drenaj limfatic", en: "Lymphatic drainage" },
     description: {
       ro: "Tehnici blânde și ritmice concepute pentru a susține circulația limfatică și relaxarea.",
       en: "Gentle, rhythmic techniques designed to support lymphatic circulation and relaxation.",
     },
+    durations: standardDurations,
   },
   {
     key: "aromaterapie",
@@ -79,18 +92,9 @@ export const SERVICES: {
       ro: "Masaj relaxant completat de uleiuri aromatice pentru o experiență senzorială calmă.",
       en: "A relaxing massage enhanced with aromatic oils for a calm, sensory experience.",
     },
+    durations: standardDurations,
   },
 ];
-
-/**
- * Session names are customer-facing packages. Massage technique is selected separately.
- * The 90-minute Restore session is intentionally marked as the recommended option.
- */
-export const SESSION_OPTIONS = [
-  { key: "relax", name: "Relax", minutes: 60, priceLei: 200, featured: false },
-  { key: "restore", name: "Restore", minutes: 90, priceLei: 270, featured: true },
-  { key: "signature", name: "Signature", minutes: 120, priceLei: 340, featured: false },
-] as const;
 
 export const MEMBERSHIPS = [
   { sessions: 5, minutes: 60, priceLei: 950 },
