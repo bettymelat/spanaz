@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function validService(data) {
+      return
+        (data.serviceKey == 'relaxare' && data.serviceName in ['Masaj de relaxare', 'Relaxation massage']) ||
+        (data.serviceKey == 'deepTissue' && data.serviceName in ['Masaj deep tissue', 'Deep tissue massage']) ||
+        (data.serviceKey == 'spateGat' && data.serviceName in ['Drenaj limfatic', 'Lymphatic drainage']) ||
+        (data.serviceKey == 'aromaterapie' && data.serviceName in ['Masaj cu aromaterapie', 'Aromatherapy massage']);
+    }
+
+    function validSession(data) {
+      return
+        (data.sessionKey == 'relax' && data.sessionName == 'Relax' && data.durationMinutes == 60 && data.priceLei == 200) ||
+        (data.sessionKey == 'restore' && data.sessionName == 'Restore' && data.durationMinutes == 90 && data.priceLei == 270) ||
+        (data.sessionKey == 'signature' && data.sessionName == 'Signature' && data.durationMinutes == 120 && data.priceLei == 340);
+    }
+
+    match /bookings/{bookingId} {
+      // Public website visitors may create a tightly validated booking request.
+      // They can never list, read, edit, confirm, or delete booking records.
+      allow create: if
+        request.resource.data.keys().hasOnly([
+          'name',
+          'phone',
+          'whatsapp',
+          'serviceKey',
+          'serviceName',
+          'sessionKey',
+          'sessionName',
+          'durationMinutes',
+          'priceLei',
+          'appointmentDate',
+          'appointmentTime',
+          'sector',
+          'address',
+          'people',
+          'message',
+          'language',
+          'status',
+          'source',
+          'createdAt'
+        ]) &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() >= 2 &&
+        request.resource.data.name.size() <= 120 &&
+        request.resource.data.phone is string &&
+        request.resource.data.phone.size() >= 7 &&
+        request.resource.data.phone.size() <= 24 &&
+        request.resource.data.whatsapp is string &&
+        request.resource.data.whatsapp.size() >= 7 &&
+        request.resource.data.whatsapp.size() <= 24 &&
+        validService(request.resource.data) &&
+        validSession(request.resource.data) &&
+        request.resource.data.appointmentDate is string &&
+        request.resource.data.appointmentDate.size() == 10 &&
+        request.resource.data.appointmentTime is string &&
+        request.resource.data.appointmentTime.size() == 5 &&
+        request.resource.data.sector in ['Sector 1', 'Sector 4', 'Sector 5', 'Sector 6'] &&
+        request.resource.data.address is string &&
+        request.resource.data.address.size() >= 4 &&
+        request.resource.data.address.size() <= 300 &&
+        request.resource.data.people is int &&
+        request.resource.data.people >= 1 &&
+        request.resource.data.people <= 4 &&
+        request.resource.data.message is string &&
+        request.resource.data.message.size() <= 1000 &&
+        request.resource.data.language in ['ro', 'en'] &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.source == 'website' &&
+        request.resource.data.createdAt is timestamp;
+
+      allow read, update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
