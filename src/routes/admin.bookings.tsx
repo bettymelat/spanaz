@@ -91,7 +91,10 @@ function customerWhatsAppLink(booking: AdminBooking) {
 }
 
 function minutesFromTime(time: string) {
-  const [hours, minutes] = time.split(":").map(Number);
+  const parts = time.split(":");
+  if (parts.length !== 2) return null;
+  const hours = Number(parts[0] ?? Number.NaN);
+  const minutes = Number(parts[1] ?? Number.NaN);
   if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
   return hours * 60 + minutes;
 }
