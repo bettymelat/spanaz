@@ -54,8 +54,8 @@ function createBookingReference() {
 export async function createBooking(
   input: BookingRequest,
 ): Promise<{ id: string; reference: string }> {
-  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim();
-  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY?.trim();
+  const projectId = import.meta.env["VITE_FIREBASE_PROJECT_ID"]?.trim();
+  const apiKey = import.meta.env["VITE_FIREBASE_API_KEY"]?.trim();
 
   if (!projectId || !apiKey) throw new BookingConfigurationError();
 
@@ -92,13 +92,13 @@ export async function createBooking(
   };
 
   if (customerSession) {
-    fields.customerUid = stringValue(customerSession.uid);
-    fields.customerEmail = stringValue(customerSession.email);
+    fields["customerUid"] = stringValue(customerSession.uid);
+    fields["customerEmail"] = stringValue(customerSession.email);
   }
 
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (customerSession?.idToken) {
-    headers.authorization = "Bearer " + customerSession.idToken;
+    headers["authorization"] = "Bearer " + customerSession.idToken;
   }
 
   const response = await fetch(endpoint, {
