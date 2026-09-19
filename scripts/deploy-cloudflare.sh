@@ -58,14 +58,15 @@ command -v npx >/dev/null 2>&1 || die "npx is required."
 
 [[ -f package.json ]] || die "package.json was not found. Run this script from the SpaNaz repository."
 
-if [[ ! -f .env.local ]]; then
-  die ".env.local was not found. Run scripts/setup-firebase.sh first."
+if [[ -f .env.local ]]; then
+  grep -q '^VITE_FIREBASE_PROJECT_ID=' .env.local || \
+    die "VITE_FIREBASE_PROJECT_ID is missing from .env.local."
+  grep -q '^VITE_FIREBASE_API_KEY=' .env.local || \
+    die "VITE_FIREBASE_API_KEY is missing from .env.local."
+  ok "Local Firebase fallback configuration found."
+else
+  warn ".env.local is absent. The production build will rely on Cloudflare Worker runtime variables."
 fi
-
-grep -q '^VITE_FIREBASE_PROJECT_ID=' .env.local || \
-  die "VITE_FIREBASE_PROJECT_ID is missing from .env.local."
-grep -q '^VITE_FIREBASE_API_KEY=' .env.local || \
-  die "VITE_FIREBASE_API_KEY is missing from .env.local."
 
 WRANGLER=(npx --yes wrangler@latest)
 
@@ -129,6 +130,8 @@ cat > "$TEMP_CONFIG" <<EOF
   "name": "$WORKER_NAME",
   "main": "./$MAIN_ENTRY",
   "compatibility_date": "$COMPATIBILITY_DATE",
+  "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
   "assets": {
     "directory": "./$ASSETS_DIR",
     "binding": "ASSETS"
@@ -161,3 +164,20 @@ ok "Cloudflare deployment completed."
 printf '\nLatest deployment:\n'
 "${WRANGLER[@]}" deployments list --name "$WORKER_NAME" | head -n 18 || true
 printf '\nProduction URL: https://spanaz.ro/\n'
+
+if command -v curl >/dev/null 2>&1; then
+  printf '\nProduction health check:\n'
+  HEALTH_URL="https://spanaz.ro/api/health"
+  HEALTH_BODY="$(curl -fsS "$HEALTH_URL" 2>/dev/null || true)"
+  if [[ "$HEALTH_BODY" == *'"firebaseConfigured":true'* ]]; then
+    ok "Production Worker sees the Firebase runtime configuration."
+    printf '%s\n' "$HEALTH_BODY"
+  else
+    warn "Production health check did not confirm Firebase configuration."
+    printf '%s\n' "${HEALTH_BODY:-No response from $HEALTH_URL}"
+    printf '\nCheck Cloudflare Worker -> Settings -> Variables and Secrets and confirm these runtime variables exist:\n'
+    printf '  VITE_FIREBASE_PROJECT_ID\n'
+    printf '  VITE_FIREBASE_API_KEY\n'
+    printf 'Then deploy the variable changes in Cloudflare and rerun this deployment.\n'
+  fi
+fi

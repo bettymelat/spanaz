@@ -1,4 +1,5 @@
 import type { AdminSession } from "@/lib/admin-auth";
+import { getFirebasePublicConfig } from "@/lib/runtime-config";
 
 export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
@@ -48,18 +49,6 @@ type FirestoreDocument = {
   name?: string;
   fields?: Record<string, FirestoreValue>;
 };
-
-function getProjectId() {
-  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim();
-  if (!projectId) throw new Error("Firebase project is not configured.");
-  return projectId;
-}
-
-function getApiKey() {
-  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY?.trim();
-  if (!apiKey) throw new Error("Firebase API key is not configured.");
-  return apiKey;
-}
 
 function stringField(fields: Record<string, FirestoreValue>, key: string) {
   return fields[key]?.stringValue ?? "";
@@ -119,11 +108,12 @@ async function readError(response: Response) {
 }
 
 export async function listAdminBookings(session: AdminSession): Promise<AdminBooking[]> {
+  const { projectId, apiKey } = await getFirebasePublicConfig();
   const endpoint =
     "https://firestore.googleapis.com/v1/projects/" +
-    encodeURIComponent(getProjectId()) +
+    encodeURIComponent(projectId) +
     "/databases/(default)/documents:runQuery?key=" +
-    encodeURIComponent(getApiKey());
+    encodeURIComponent(apiKey);
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -156,6 +146,7 @@ export async function updateAdminBooking(
   bookingId: string,
   patch: BookingAdminPatch,
 ): Promise<void> {
+  const { projectId, apiKey } = await getFirebasePublicConfig();
   const fields: Record<string, FirestoreValue> = {
     updatedAt: timestampValue(new Date().toISOString()),
     updatedBy: stringValue(session.email),
@@ -174,11 +165,11 @@ export async function updateAdminBooking(
 
   const endpoint = new URL(
     "https://firestore.googleapis.com/v1/projects/" +
-      encodeURIComponent(getProjectId()) +
+      encodeURIComponent(projectId) +
       "/databases/(default)/documents/bookings/" +
       encodeURIComponent(bookingId),
   );
-  endpoint.searchParams.set("key", getApiKey());
+  endpoint.searchParams.set("key", apiKey);
   endpoint.searchParams.set("currentDocument.exists", "true");
   Object.keys(fields).forEach((field) => {
     endpoint.searchParams.append("updateMask.fieldPaths", field);

@@ -7,6 +7,8 @@ type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
 
+type WorkerEnv = Record<string, unknown>;
+
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
 async function getServerEntry(): Promise<ServerEntry> {
@@ -16,6 +18,80 @@ async function getServerEntry(): Promise<ServerEntry> {
     );
   }
   return serverEntryPromise;
+}
+
+function readBinding(env: unknown, ...names: string[]) {
+  const bindings =
+    env != null && typeof env === "object" ? (env as WorkerEnv) : ({} as WorkerEnv);
+
+  for (const name of names) {
+    const value = bindings[name];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function firebaseRuntimeConfig(env: unknown) {
+  const projectId =
+    readBinding(env, "VITE_FIREBASE_PROJECT_ID", "FIREBASE_PROJECT_ID") ||
+    import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+    "";
+  const apiKey =
+    readBinding(env, "VITE_FIREBASE_API_KEY", "FIREBASE_API_KEY") ||
+    import.meta.env.VITE_FIREBASE_API_KEY?.trim() ||
+    "";
+
+  return { projectId, apiKey };
+}
+
+function json(payload: unknown, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+    },
+  });
+}
+
+function runtimeEndpoint(request: Request, env: unknown) {
+  const url = new URL(request.url);
+  if (request.method !== "GET") return null;
+
+  const config = firebaseRuntimeConfig(env);
+
+  if (url.pathname === "/api/runtime-config") {
+    if (!config.projectId || !config.apiKey) {
+      return json(
+        {
+          error: "firebase_not_configured",
+          firebase: { configured: false },
+        },
+        503,
+      );
+    }
+
+    // Firebase Web project identifiers are public client configuration.
+    return json({
+      firebase: {
+        configured: true,
+        projectId: config.projectId,
+        apiKey: config.apiKey,
+      },
+    });
+  }
+
+  if (url.pathname === "/api/health") {
+    return json({
+      status: config.projectId && config.apiKey ? "ok" : "degraded",
+      firebaseConfigured: Boolean(config.projectId && config.apiKey),
+      firebaseProjectId: config.projectId || null,
+      timestamp: new Date().toISOString(),
+    }, config.projectId && config.apiKey ? 200 : 503);
+  }
+
+  return null;
 }
 
 // h3 swallows in-handler throws into a normal 500 Response with body
@@ -47,6 +123,9 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const runtimeResponse = runtimeEndpoint(request, env);
+      if (runtimeResponse) return runtimeResponse;
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
