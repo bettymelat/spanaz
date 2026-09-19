@@ -8,6 +8,26 @@ service cloud.firestore {
         request.auth.token.email == 'homespanaz@gmail.com';
     }
 
+    function isBookingCustomer(data) {
+      return
+        request.auth != null &&
+        ('customerUid' in data) &&
+        data.customerUid == request.auth.uid;
+    }
+
+    function validCustomerIdentity(data) {
+      return
+        (
+          !('customerUid' in data) &&
+          !('customerEmail' in data)
+        ) ||
+        (
+          request.auth != null &&
+          data.customerUid == request.auth.uid &&
+          data.customerEmail == request.auth.token.email
+        );
+    }
+
     function validService(data) {
       return
         (data.serviceKey == 'relaxare' && data.serviceName in [
@@ -38,8 +58,24 @@ service cloud.firestore {
         data.updatedBy == request.auth.token.email;
     }
 
+    function validCustomerCancellation() {
+      return
+        isBookingCustomer(resource.data) &&
+        resource.data.status in ['pending', 'confirmed'] &&
+        request.resource.data.status == 'cancelled' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'updatedAt',
+          'updatedBy'
+        ]) &&
+        request.resource.data.updatedAt is timestamp &&
+        request.resource.data.updatedBy == request.auth.token.email;
+    }
+
     match /bookings/{bookingId} {
-      // Public visitors can only create a tightly validated booking request.
+      // Guests and signed-in customers may create tightly validated requests.
+      // Signed-in requests are linked to the Firebase UID so the customer can
+      // later view and cancel only their own appointment.
       allow create: if
         request.resource.data.keys().hasOnly([
           'reference',
@@ -61,8 +97,11 @@ service cloud.firestore {
           'language',
           'status',
           'source',
-          'createdAt'
+          'createdAt',
+          'customerUid',
+          'customerEmail'
         ]) &&
+        validCustomerIdentity(request.resource.data) &&
         request.resource.data.reference is string &&
         request.resource.data.reference.matches('^SN-[0-9]{6}-[A-Z0-9]{4}$') &&
         request.resource.data.name is string &&
@@ -94,23 +133,27 @@ service cloud.firestore {
         request.resource.data.source == 'website' &&
         request.resource.data.createdAt is timestamp;
 
-      // Only the verified owner account can view customer booking data.
-      allow read: if isOwnerAdmin();
+      // The owner sees all bookings. A signed-in customer can only see a
+      // booking explicitly linked to their Firebase UID.
+      allow read: if isOwnerAdmin() || isBookingCustomer(resource.data);
 
-      // Customer data remains immutable. The owner may only change workflow fields.
+      // Owner workflow edits remain restricted. Customers can only cancel an
+      // appointment that is still pending or confirmed.
       allow update: if
-        isOwnerAdmin() &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'status',
-          'confirmedDate',
-          'confirmedTime',
-          'internalNote',
-          'updatedAt',
-          'updatedBy'
-        ]) &&
-        validAdminManagedFields(request.resource.data);
+        (
+          isOwnerAdmin() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status',
+            'confirmedDate',
+            'confirmedTime',
+            'internalNote',
+            'updatedAt',
+            'updatedBy'
+          ]) &&
+          validAdminManagedFields(request.resource.data)
+        ) ||
+        validCustomerCancellation();
 
-      // Preserve booking history. Normal operations cancel instead of deleting.
       allow delete: if false;
     }
 

@@ -26,6 +26,7 @@ const localBusinessSchema = {
   email: BUSINESS.email,
   priceRange: "200-340 RON",
   availableLanguage: ["ro", "en"],
+  url: "https://spanaz.ro/",
 };
 
 export const Route = createFileRoute("/")({
@@ -44,10 +45,10 @@ export const Route = createFileRoute("/")({
           "Masaj profesional la domiciliu în București: relaxare, deep tissue, drenaj limfatic și aromaterapie. Rezervă online sau pe WhatsApp.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "/" },
+      { property: "og:url", content: "https://spanaz.ro/" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "/" }],
+    links: [{ rel: "canonical", href: "https://spanaz.ro/" }],
     scripts: [{ type: "application/ld+json", children: JSON.stringify(localBusinessSchema) }],
   }),
   component: Index,

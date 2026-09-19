@@ -1,3 +1,5 @@
+import { getCurrentCustomerSession } from "@/lib/customer-auth";
+
 export type BookingRequest = {
   name: string;
   phone: string;
@@ -52,8 +54,8 @@ function createBookingReference() {
 export async function createBooking(
   input: BookingRequest,
 ): Promise<{ id: string; reference: string }> {
-  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim();
-  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY?.trim();
+  const projectId = import.meta.env["VITE_FIREBASE_PROJECT_ID"]?.trim();
+  const apiKey = import.meta.env["VITE_FIREBASE_API_KEY"]?.trim();
 
   if (!projectId || !apiKey) throw new BookingConfigurationError();
 
@@ -65,33 +67,44 @@ export async function createBooking(
   );
   endpoint.searchParams.set("key", apiKey);
 
+  const customerSession = await getCurrentCustomerSession().catch(() => null);
+  const fields: Record<string, unknown> = {
+    reference: stringValue(reference),
+    name: stringValue(input.name),
+    phone: stringValue(input.phone),
+    whatsapp: stringValue(input.whatsapp),
+    serviceKey: stringValue(input.serviceKey),
+    serviceName: stringValue(input.serviceName),
+    sessionKey: stringValue(input.sessionKey),
+    sessionName: stringValue(input.sessionName),
+    durationMinutes: integerValue(input.durationMinutes),
+    priceLei: integerValue(input.priceLei),
+    appointmentDate: stringValue(input.date),
+    appointmentTime: stringValue(input.time),
+    sector: stringValue(input.sector),
+    address: stringValue(input.address),
+    people: integerValue(input.people),
+    message: stringValue(input.message),
+    language: stringValue(input.language),
+    status: stringValue("pending"),
+    source: stringValue("website"),
+    createdAt: timestampValue(new Date().toISOString()),
+  };
+
+  if (customerSession) {
+    fields["customerUid"] = stringValue(customerSession.uid);
+    fields["customerEmail"] = stringValue(customerSession.email);
+  }
+
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (customerSession?.idToken) {
+    headers["authorization"] = "Bearer " + customerSession.idToken;
+  }
+
   const response = await fetch(endpoint, {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      fields: {
-        reference: stringValue(reference),
-        name: stringValue(input.name),
-        phone: stringValue(input.phone),
-        whatsapp: stringValue(input.whatsapp),
-        serviceKey: stringValue(input.serviceKey),
-        serviceName: stringValue(input.serviceName),
-        sessionKey: stringValue(input.sessionKey),
-        sessionName: stringValue(input.sessionName),
-        durationMinutes: integerValue(input.durationMinutes),
-        priceLei: integerValue(input.priceLei),
-        appointmentDate: stringValue(input.date),
-        appointmentTime: stringValue(input.time),
-        sector: stringValue(input.sector),
-        address: stringValue(input.address),
-        people: integerValue(input.people),
-        message: stringValue(input.message),
-        language: stringValue(input.language),
-        status: stringValue("pending"),
-        source: stringValue("website"),
-        createdAt: timestampValue(new Date().toISOString()),
-      },
-    }),
+    headers,
+    body: JSON.stringify({ fields }),
   });
 
   if (!response.ok) {

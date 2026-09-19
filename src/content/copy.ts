@@ -42,7 +42,7 @@ export const ro = {
     missionLabel: "Misiunea noastră",
     mission: "Să ajutăm oamenii să se simtă mai bine, să se relaxeze mai profund și să facă grija de sine mai ușoară.",
     imageAlt: "Portretul fondatoarei SPA NAZ, terapeut de masaj profesionist în București",
-    note: "Certificările, calificările și anii de experiență vor fi afișate aici atunci când sunt furnizate de proprietarul afacerii.",
+    note: "",
   },
   services: {
     title: "Serviciile noastre",
@@ -122,7 +122,7 @@ export const ro = {
       { q: "Cât durează un masaj?", a: "Durata depinde de tratamentul ales. Duratele disponibile și prețurile sunt afișate în secțiunea de servicii." },
       { q: "Deserviți toate zonele Bucureștiului?", a: "Disponibilitatea depinde de locație și de program. Poți menționa adresa la rezervare pentru confirmare." },
       { q: "Pot rezerva pentru două persoane?", a: "Întreabă SPA NAZ despre programările pentru cupluri sau pentru mai multe persoane." },
-      { q: "Pot anula sau reprograma?", a: "[Adaugă aici politica de anulare și reprogramare.]" },
+      { q: "Pot anula sau reprograma?", a: "Da. Te rugăm să anunți cu cel puțin 12 ore înainte atunci când este posibil. Programările asociate contului pot fi anulate din pagina «Contul meu», iar pentru reprogramare ne poți contacta direct." },
     ],
   },
   booking: {
@@ -214,13 +214,13 @@ export const en: Copy = {
     title: "About SPA NAZ",
     lead: "SPA NAZ is a professional home massage service created to make relaxation and self-care simple, comfortable and personal.",
     body: [
-      "Founded by an Ethiopian massage professional living and working in Bucharest, SPA NAZ combines professional massage techniques with genuine care, calm communication and the warmth of Ethiopian hospitality.",
+      "Created by a massage professional living and working in Bucharest, SPA NAZ combines professional massage techniques with genuine care, calm communication and personal attention.",
       "Instead of spending time traveling to a spa, our clients enjoy a relaxing massage in the comfort and privacy of their own home.",
     ],
     missionLabel: "Our mission",
     mission: "Help people feel better, relax deeper and make self-care easier.",
     imageAlt: "Portrait of the SPA NAZ founder, professional massage therapist in Bucharest",
-    note: "Certifications, qualifications and years of experience will be displayed here once provided by the business owner.",
+    note: "",
   },
   services: {
     title: "Our services",
@@ -300,7 +300,7 @@ export const en: Copy = {
       { q: "How long does a massage take?", a: "Durations depend on the treatment selected. Available durations and prices are shown in the services section." },
       { q: "Do you serve all areas of Bucharest?", a: "Service availability depends on location and schedule. You can provide your address during booking for confirmation." },
       { q: "Can I book for two people?", a: "Ask SPA NAZ about couples or multiple-person appointments." },
-      { q: "Can I cancel or reschedule?", a: "[Add your cancellation and rescheduling policy here.]" },
+      { q: "Can I cancel or reschedule?", a: "Yes. Please give at least 12 hours' notice where possible. Account-linked appointments can be cancelled from My Account, and you can contact SPA NAZ directly to reschedule." },
     ],
   },
   booking: {
