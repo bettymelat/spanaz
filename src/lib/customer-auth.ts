@@ -26,8 +26,8 @@ export type CustomerSession = {
 function getFirebaseApp(): FirebaseApp {
   if (getApps().length > 0) return getApp();
 
-  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim();
-  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY?.trim();
+  const projectId = import.meta.env["VITE_FIREBASE_PROJECT_ID"]?.trim();
+  const apiKey = import.meta.env["VITE_FIREBASE_API_KEY"]?.trim();
   if (!projectId || !apiKey) {
     throw new Error("Firebase authentication is not configured.");
   }
