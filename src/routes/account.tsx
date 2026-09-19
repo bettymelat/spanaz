@@ -13,6 +13,7 @@ import {
 import type { User } from "firebase/auth";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
+import { BUSINESS } from "@/content/business";
 import {
   customerAuthError,
   logoutCustomer,
@@ -319,6 +320,29 @@ function AccountPage() {
                   })}
                 </div>
               )}
+            </section>
+
+            <section className="mt-6 rounded-2xl border border-border bg-background p-5 text-sm text-muted-foreground">
+              <h2 className="text-lg text-foreground">Account & privacy</h2>
+              <p className="mt-2 leading-relaxed">
+                To request access, correction or deletion of your account data, contact SPA NAZ from the email address associated with this account. Booking records may be retained where required for legitimate operational or legal purposes.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <a
+                  href={
+                    "mailto:" +
+                    BUSINESS.email +
+                    "?subject=" +
+                    encodeURIComponent("SPA NAZ account / data request")
+                  }
+                  className="font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Request account/data action
+                </a>
+                <a href="/privacy" className="font-medium text-primary underline-offset-4 hover:underline">
+                  Privacy policy
+                </a>
+              </div>
             </section>
           </>
         )}
