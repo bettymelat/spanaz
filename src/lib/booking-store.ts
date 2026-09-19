@@ -1,9 +1,11 @@
 import { getCurrentCustomerSession } from "@/lib/customer-auth";
 
+export const BOOKING_PRIVACY_VERSION = "2026-09-19";
+export const BOOKING_TERMS_VERSION = "2026-09-19";
+
 export type BookingRequest = {
   name: string;
   phone: string;
-  whatsapp: string;
   serviceKey: string;
   serviceName: string;
   sessionKey: string;
@@ -68,11 +70,15 @@ export async function createBooking(
   endpoint.searchParams.set("key", apiKey);
 
   const customerSession = await getCurrentCustomerSession().catch(() => null);
+  const now = new Date().toISOString();
+
   const fields: Record<string, unknown> = {
     reference: stringValue(reference),
     name: stringValue(input.name),
     phone: stringValue(input.phone),
-    whatsapp: stringValue(input.whatsapp),
+    // Kept for compatibility with the current owner dashboard. The booking UI
+    // now asks for one mobile/WhatsApp contact number only.
+    whatsapp: stringValue(input.phone),
     serviceKey: stringValue(input.serviceKey),
     serviceName: stringValue(input.serviceName),
     sessionKey: stringValue(input.sessionKey),
@@ -88,7 +94,11 @@ export async function createBooking(
     language: stringValue(input.language),
     status: stringValue("pending"),
     source: stringValue("website"),
-    createdAt: timestampValue(new Date().toISOString()),
+    createdAt: timestampValue(now),
+    privacyNoticeVersion: stringValue(BOOKING_PRIVACY_VERSION),
+    privacyAcknowledgedAt: timestampValue(now),
+    termsVersion: stringValue(BOOKING_TERMS_VERSION),
+    termsAcceptedAt: timestampValue(now),
   };
 
   if (customerSession) {

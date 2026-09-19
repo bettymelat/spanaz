@@ -79,6 +79,10 @@ async function responseError(response: Response) {
   }
 }
 
+function documentName(projectId: string, path: string) {
+  return "projects/" + projectId + "/databases/(default)/documents/" + path;
+}
+
 export async function listCustomerBookings(): Promise<CustomerBooking[]> {
   const session = await getCurrentCustomerSession();
   if (!session) throw new Error("Sign in to view your bookings.");
@@ -120,36 +124,53 @@ export async function listCustomerBookings(): Promise<CustomerBooking[]> {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export async function cancelCustomerBooking(bookingId: string): Promise<void> {
+export async function cancelCustomerBooking(booking: CustomerBooking): Promise<void> {
   const session = await getCurrentCustomerSession();
   if (!session) throw new Error("Sign in to manage this booking.");
 
   const { projectId, apiKey } = projectConfig();
-  const endpoint = new URL(
+  const now = new Date().toISOString();
+
+  const writes: Array<Record<string, unknown>> = [
+    {
+      update: {
+        name: documentName(projectId, "bookings/" + booking.id),
+        fields: {
+          status: { stringValue: "cancelled" },
+          updatedAt: { timestampValue: now },
+          updatedBy: { stringValue: session.email },
+        },
+      },
+      updateMask: { fieldPaths: ["status", "updatedAt", "updatedBy"] },
+      currentDocument: { exists: true },
+    },
+  ];
+
+  if (booking.status === "confirmed") {
+    const date = booking.confirmedDate || booking.appointmentDate;
+    if (date) {
+      writes.push({
+        delete: documentName(
+          projectId,
+          "availability/" + date + "/slots/" + booking.id,
+        ),
+      });
+    }
+  }
+
+  const endpoint =
     "https://firestore.googleapis.com/v1/projects/" +
-      encodeURIComponent(projectId) +
-      "/databases/(default)/documents/bookings/" +
-      encodeURIComponent(bookingId),
-  );
-  endpoint.searchParams.set("key", apiKey);
-  endpoint.searchParams.append("updateMask.fieldPaths", "status");
-  endpoint.searchParams.append("updateMask.fieldPaths", "updatedAt");
-  endpoint.searchParams.append("updateMask.fieldPaths", "updatedBy");
-  endpoint.searchParams.set("currentDocument.exists", "true");
+    encodeURIComponent(projectId) +
+    "/databases/(default)/documents:commit?key=" +
+    encodeURIComponent(apiKey);
 
   const response = await fetch(endpoint, {
-    method: "PATCH",
+    method: "POST",
     headers: {
       "content-type": "application/json",
       authorization: "Bearer " + session.idToken,
     },
-    body: JSON.stringify({
-      fields: {
-        status: { stringValue: "cancelled" },
-        updatedAt: { timestampValue: new Date().toISOString() },
-        updatedBy: { stringValue: session.email },
-      },
-    }),
+    body: JSON.stringify({ writes }),
   });
 
   if (!response.ok) throw new Error(await responseError(response));

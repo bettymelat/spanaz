@@ -106,7 +106,7 @@ function AccountPage() {
     setCancellingId(booking.id);
     setError("");
     try {
-      await cancelCustomerBooking(booking.id);
+      await cancelCustomerBooking(booking);
       setNotice("Booking " + booking.reference + " was cancelled.");
       await refreshBookings();
     } catch (cancelError) {

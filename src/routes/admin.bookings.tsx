@@ -23,6 +23,7 @@ import {
 } from "@/lib/admin-auth";
 import {
   listAdminBookings,
+  seedConfirmedAvailability,
   updateAdminBooking,
   type AdminBooking,
   type BookingStatus,
@@ -136,6 +137,7 @@ function AdminBookings() {
   const [savingId, setSavingId] = useState("");
   const [alertsEnabled, setAlertsEnabled] = useState(false);
   const knownBookingIds = useRef<Set<string> | null>(null);
+  const availabilitySeeded = useRef(false);
   const [scheduleDrafts, setScheduleDrafts] = useState<
     Record<string, { date: string; time: string; note: string }>
   >({});
@@ -153,6 +155,11 @@ function AdminBookings() {
       }
       setSession(validSession);
       const rows = await listAdminBookings(validSession);
+
+      if (!availabilitySeeded.current) {
+        await seedConfirmedAvailability(validSession, rows);
+        availabilitySeeded.current = true;
+      }
 
       const known = knownBookingIds.current;
       if (
@@ -299,7 +306,7 @@ function AdminBookings() {
     setSavingId(booking.id);
     setError("");
     try {
-      await updateAdminBooking(validSession, booking.id, {
+      await updateAdminBooking(validSession, booking, {
         ...(status ? { status } : {}),
         ...(includeSchedule || status === "confirmed"
           ? {
