@@ -17,16 +17,16 @@ export function Offerings() {
   const copy =
     lang === "ro"
       ? {
-          title: "Tipuri de masaj",
-          subtitle: "Alege tehnica potrivită pentru tine. Durata și pachetul se aleg separat la rezervare.",
+          title: "Alege tratamentul potrivit pentru tine",
+          subtitle: "Tehnica se alege separat de durată. Mai întâi alegi tipul de masaj, apoi alegi cât timp vrei să te deconectezi.",
           book: "Rezervă acum",
-          durations: "Disponibil în sesiuni de 60, 90 și 120 minute",
+          durations: "Disponibil în experiențe de 60, 90 și 120 minute",
         }
       : {
-          title: "Massage types",
-          subtitle: "Choose the technique that suits you. Session length is selected separately when booking.",
+          title: "Choose the treatment that suits you",
+          subtitle: "Technique and duration are selected separately. First choose the massage style, then choose how long you want to switch off.",
           book: "Book now",
-          durations: "Available in 60, 90 and 120 minute sessions",
+          durations: "Available as 60, 90 and 120 minute experiences",
         };
 
   return (
@@ -59,29 +59,42 @@ export function PricingAndMembership() {
   const copy =
     lang === "ro"
       ? {
-          title: "Prețuri",
-          subtitle: "Alege durata potrivită. Restore 90 min este opțiunea noastră recomandată.",
+          title: "Experiența de Relaxare",
+          subtitle: "60 / 90 / 120 min — pentru a încetini ritmul, a elibera tensiunea de zi cu zi și a te deconecta complet.",
           popular: "Recomandat",
-          session: "sesiune",
-          membershipTitle: "Ai nevoie de masaj regulat? Economisește cu SPA NAZ Membership.",
-          membershipSubtitle: "Pachete preplătite pentru clienții care doresc să transforme masajul într-o rutină.",
-          sessions: "ședințe",
+          session: "experiență",
+          membershipTitle: "SPA NAZ Membership",
+          membershipSubtitle: "Două opțiuni simple pentru clienții care vor să transforme relaxarea într-o rutină.",
+          chooseDuration: "Alege 60 / 90 / 120 min",
+          sessions: "experiențe",
           save: "Economie",
-          book: "Rezervă o programare",
+          book: "Rezervă experiența",
+          sessionDescriptions: {
+            relax: "Un reset complet de 60 de minute.",
+            restore: "Mai mult timp pentru relaxare — experiența noastră recomandată.",
+            signature: "Cea mai completă și imersivă experiență SPA NAZ.",
+          },
         }
       : {
-          title: "Pricing",
-          subtitle: "Choose the session length that suits you. Restore 90 min is our recommended option.",
+          title: "The Relaxation Experience",
+          subtitle: "60 / 90 / 120 min — for slowing down, releasing everyday tension and completely switching off.",
           popular: "Recommended",
-          session: "session",
-          membershipTitle: "Need regular massage? Save with SPA NAZ Membership.",
-          membershipSubtitle: "Prepaid packages for clients who want to make massage part of their routine.",
-          sessions: "sessions",
+          session: "experience",
+          membershipTitle: "SPA NAZ Membership",
+          membershipSubtitle: "Two simple options for clients who want to make relaxation part of their routine.",
+          chooseDuration: "Choose 60 / 90 / 120 min",
+          sessions: "experiences",
           save: "Save",
-          book: "Book an appointment",
+          book: "Book the experience",
+          sessionDescriptions: {
+            relax: "A complete 60-minute reset.",
+            restore: "More time to unwind — our recommended experience.",
+            signature: "Our most immersive SPA NAZ experience.",
+          },
         };
 
   const standardPrice = (minutes: number) => SESSION_OPTIONS.find((item) => item.minutes === minutes)?.priceLei ?? 0;
+  const membershipGroups = [5, 10] as const;
 
   return (
     <section id="preturi" className="scroll-mt-24 bg-sand py-16 lg:py-24">
@@ -100,11 +113,14 @@ export function PricingAndMembership() {
                   {copy.popular}
                 </div>
               )}
-              <h3 className="text-3xl">{session.name}</h3>
+              <h3 className="text-3xl uppercase tracking-[0.08em]">{session.name}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
                 {session.minutes} min · {copy.session}
               </p>
-              <p className="mt-6 font-display text-4xl text-foreground">
+              <p className="mt-4 min-h-10 text-sm leading-relaxed text-muted-foreground">
+                {copy.sessionDescriptions[session.key]}
+              </p>
+              <p className="mt-5 font-display text-4xl text-foreground">
                 {session.priceLei} <span className="text-xl">lei</span>
               </p>
               <a
@@ -127,29 +143,45 @@ export function PricingAndMembership() {
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{copy.membershipSubtitle}</p>
           </div>
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {MEMBERSHIPS.map((membership) => {
-              const regular = standardPrice(membership.minutes) * membership.sessions;
-              const saving = regular - membership.priceLei;
+          <div className="mx-auto mt-8 grid max-w-4xl gap-5 md:grid-cols-2">
+            {membershipGroups.map((sessionCount) => {
+              const options = MEMBERSHIPS.filter((membership) => membership.sessions === sessionCount);
               return (
-                <article key={`${membership.sessions}-${membership.minutes}`} className="surface-card p-6">
+                <article key={sessionCount} className="surface-card p-7">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-lg font-semibold">
-                        {membership.sessions} × {membership.minutes} min
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">{copy.sessions}</p>
+                      <p className="eyebrow">{sessionCount} EXPERIENCE MEMBERSHIP</p>
+                      <h4 className="mt-2 text-2xl">{copy.chooseDuration}</h4>
                     </div>
-                    <Check className="h-5 w-5 text-gold" />
+                    <Check className="h-5 w-5 shrink-0 text-gold" />
                   </div>
-                  <p className="mt-5 font-display text-3xl">
-                    {membership.priceLei} <span className="text-lg">lei</span>
-                  </p>
-                  {saving > 0 && (
-                    <p className="mt-2 text-sm font-medium text-primary">
-                      {copy.save}: {saving} lei
-                    </p>
-                  )}
+
+                  <div className="mt-6 divide-y divide-border border-y border-border">
+                    {options.map((membership) => {
+                      const regular = standardPrice(membership.minutes) * membership.sessions;
+                      const saving = regular - membership.priceLei;
+                      return (
+                        <div key={membership.minutes} className="flex items-center justify-between gap-4 py-4">
+                          <div>
+                            <p className="font-medium">{membership.minutes} min</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {membership.sessions} {copy.sessions}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-display text-2xl">
+                              {membership.priceLei} <span className="text-base">lei</span>
+                            </p>
+                            {saving > 0 && (
+                              <p className="mt-1 text-xs font-medium text-primary">
+                                {copy.save}: {saving} lei
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </article>
               );
             })}

@@ -27,5 +27,8 @@ jobs:
       - name: Validate Firebase setup script
         run: bash -n scripts/setup-firebase.sh
 
+      - name: Validate Cloudflare deployment script
+        run: bash -n scripts/deploy-cloudflare.sh
+
       - name: Production build
         run: bun run build
