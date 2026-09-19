@@ -4,6 +4,7 @@ import {
   CalendarCheck,
   CheckCircle2,
   Clock3,
+  Download,
   ExternalLink,
   Loader2,
   LogOut,
@@ -173,6 +174,12 @@ function AdminBookings() {
 
   useEffect(() => {
     void load();
+
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void load(true);
+    }, 60_000);
+
+    return () => window.clearInterval(interval);
   }, []);
 
   const counts = useMemo(
@@ -278,6 +285,67 @@ function AdminBookings() {
     }
   };
 
+  const exportCsv = () => {
+    const escape = (value: string | number) => {
+      const text = String(value ?? "");
+      return '"' + text.replaceAll('"', '""') + '"';
+    };
+    const header = [
+      "Reference",
+      "Status",
+      "Customer",
+      "Phone",
+      "WhatsApp",
+      "Service",
+      "Session",
+      "Duration minutes",
+      "Price lei",
+      "Requested date",
+      "Requested time",
+      "Confirmed date",
+      "Confirmed time",
+      "Sector",
+      "Address",
+      "People",
+      "Customer message",
+      "Internal note",
+      "Created at",
+      "Updated at",
+      "Updated by",
+    ];
+    const rows = bookings.map((booking) => [
+      booking.reference,
+      booking.status,
+      booking.name,
+      booking.phone,
+      booking.whatsapp,
+      booking.serviceName,
+      booking.sessionName,
+      booking.durationMinutes,
+      booking.priceLei,
+      booking.appointmentDate,
+      booking.appointmentTime,
+      booking.confirmedDate,
+      booking.confirmedTime,
+      booking.sector,
+      booking.address,
+      booking.people,
+      booking.message,
+      booking.internalNote,
+      booking.createdAt,
+      booking.updatedAt,
+      booking.updatedBy,
+    ]);
+    const csv = [header, ...rows].map((row) => row.map(escape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "spanaz-bookings-" + new Date().toISOString().slice(0, 10) + ".csv";
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
   const logout = () => {
     clearAdminSession();
     window.location.replace("/admin/login");
@@ -303,6 +371,15 @@ function AdminBookings() {
             <h1 className="mt-1 text-2xl">Bookings</h1>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={bookings.length === 0}
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium disabled:opacity-50"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Export CSV</span>
+            </button>
             <button
               type="button"
               onClick={() => void load(true)}
