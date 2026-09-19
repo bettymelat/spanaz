@@ -1,4 +1,5 @@
-import { Facebook, Instagram, Music2 } from "lucide-react";
+import { Facebook, Instagram, LockKeyhole, Music2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { BUSINESS } from "@/content/business";
 
@@ -76,6 +77,13 @@ export function Footer() {
             <li>{t.footer.terms}</li>
             <li>{t.footer.cancellation}</li>
           </ul>
+          <Link
+            to="/admin/login"
+            className="mt-6 inline-flex items-center gap-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <LockKeyhole className="h-3.5 w-3.5" />
+            Owner login
+          </Link>
         </div>
       </div>
       <div className="border-t border-border/70 py-5 text-center text-xs text-muted-foreground">{t.footer.rights}</div>

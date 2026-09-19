@@ -10,6 +10,7 @@ import { AboutBrand } from "@/components/sections/AboutBrand";
 import { Coverage } from "@/components/sections/Coverage";
 import { SpaFaq } from "@/components/sections/SpaFaq";
 import { BookingForm } from "@/components/sections/BookingForm";
+import { CustomerAuth } from "@/components/site/CustomerAuth";
 import { useI18n } from "@/lib/i18n";
 import { BUSINESS, SERVICE_AREAS } from "@/content/business";
 
@@ -85,6 +86,7 @@ function Index() {
         <PricingAndMembership />
         <Coverage />
         <SpaFaq />
+        <CustomerAuth />
         <BookingSection />
         <Contact />
       </main>

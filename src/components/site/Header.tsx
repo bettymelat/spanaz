@@ -57,6 +57,12 @@ export function Header() {
           >
             {t.cta.bookShort}
           </a>
+          <a
+            href="/#account"
+            className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:inline-flex"
+          >
+            Account
+          </a>
           <button
             type="button"
             aria-label="Meniu"
