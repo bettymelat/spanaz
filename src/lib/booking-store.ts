@@ -1,7 +1,4 @@
-import { getCurrentCustomerSession } from "@/lib/customer-auth";
-
-export const BOOKING_PRIVACY_VERSION = "2026-09-19";
-export const BOOKING_TERMS_VERSION = "2026-09-19";
+import { getFirebasePublicConfig } from "@/lib/runtime-config";
 
 export type BookingRequest = {
   name: string;
@@ -56,10 +53,15 @@ function createBookingReference() {
 export async function createBooking(
   input: BookingRequest,
 ): Promise<{ id: string; reference: string }> {
-  const projectId = import.meta.env["VITE_FIREBASE_PROJECT_ID"]?.trim();
-  const apiKey = import.meta.env["VITE_FIREBASE_API_KEY"]?.trim();
-
-  if (!projectId || !apiKey) throw new BookingConfigurationError();
+  let projectId = "";
+  let apiKey = "";
+  try {
+    const config = await getFirebasePublicConfig();
+    projectId = config.projectId;
+    apiKey = config.apiKey;
+  } catch {
+    throw new BookingConfigurationError();
+  }
 
   const reference = createBookingReference();
   const endpoint = new URL(

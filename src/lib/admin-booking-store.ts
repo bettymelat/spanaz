@@ -1,4 +1,5 @@
 import type { AdminSession } from "@/lib/admin-auth";
+import { getFirebasePublicConfig } from "@/lib/runtime-config";
 
 export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
@@ -48,18 +49,6 @@ type FirestoreDocument = {
   name?: string;
   fields?: Record<string, FirestoreValue>;
 };
-
-function getProjectId() {
-  const projectId = import.meta.env["VITE_FIREBASE_PROJECT_ID"]?.trim();
-  if (!projectId) throw new Error("Firebase project is not configured.");
-  return projectId;
-}
-
-function getApiKey() {
-  const apiKey = import.meta.env["VITE_FIREBASE_API_KEY"]?.trim();
-  if (!apiKey) throw new Error("Firebase API key is not configured.");
-  return apiKey;
-}
 
 function stringField(fields: Record<string, FirestoreValue>, key: string) {
   return fields[key]?.stringValue ?? "";
@@ -119,11 +108,12 @@ async function readError(response: Response) {
 }
 
 export async function listAdminBookings(session: AdminSession): Promise<AdminBooking[]> {
+  const { projectId, apiKey } = await getFirebasePublicConfig();
   const endpoint =
     "https://firestore.googleapis.com/v1/projects/" +
-    encodeURIComponent(getProjectId()) +
+    encodeURIComponent(projectId) +
     "/databases/(default)/documents:runQuery?key=" +
-    encodeURIComponent(getApiKey());
+    encodeURIComponent(apiKey);
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -166,8 +156,7 @@ export async function updateAdminBooking(
   booking: AdminBooking,
   patch: BookingAdminPatch,
 ): Promise<void> {
-  const projectId = getProjectId();
-  const now = new Date().toISOString();
+  const { projectId, apiKey } = await getFirebasePublicConfig();
   const fields: Record<string, FirestoreValue> = {
     updatedAt: timestampValue(now),
     updatedBy: stringValue(session.email),
@@ -237,57 +226,14 @@ export async function updateAdminBooking(
 
   const endpoint =
     "https://firestore.googleapis.com/v1/projects/" +
-    encodeURIComponent(projectId) +
-    "/databases/(default)/documents:commit?key=" +
-    encodeURIComponent(getApiKey());
-
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: "Bearer " + session.idToken,
-    },
-    body: JSON.stringify({ writes }),
-  });
-
-  if (!response.ok) throw new Error(await readError(response));
-}
-
-
-export async function seedConfirmedAvailability(
-  session: AdminSession,
-  bookings: AdminBooking[],
-): Promise<void> {
-  const confirmed = bookings.filter(
-    (booking) =>
-      booking.status === "confirmed" &&
-      Boolean(booking.confirmedDate || booking.appointmentDate) &&
-      Boolean(booking.confirmedTime || booking.appointmentTime),
+      encodeURIComponent(projectId) +
+      "/databases/(default)/documents/bookings/" +
+      encodeURIComponent(bookingId),
   );
-  if (confirmed.length === 0) return;
-
-  const projectId = getProjectId();
-  const now = new Date().toISOString();
-  const writes = confirmed.map((booking) => {
-    const date = booking.confirmedDate || booking.appointmentDate;
-    const time = booking.confirmedTime || booking.appointmentTime;
-    return {
-      update: {
-        name: documentName(
-          projectId,
-          "availability/" + date + "/slots/" + booking.id,
-        ),
-        fields: {
-          startTime: stringValue(time),
-          durationMinutes: integerValue(booking.durationMinutes),
-          status: stringValue("booked"),
-          updatedAt: timestampValue(now),
-        },
-      },
-      updateMask: {
-        fieldPaths: ["startTime", "durationMinutes", "status", "updatedAt"],
-      },
-    };
+  endpoint.searchParams.set("key", apiKey);
+  endpoint.searchParams.set("currentDocument.exists", "true");
+  Object.keys(fields).forEach((field) => {
+    endpoint.searchParams.append("updateMask.fieldPaths", field);
   });
 
   const endpoint =
