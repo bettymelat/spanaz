@@ -38,7 +38,12 @@ service cloud.firestore {
         ]) ||
         (data.serviceKey == 'deepTissue' && data.serviceName in ['Masaj deep tissue', 'Deep tissue massage']) ||
         (data.serviceKey == 'spateGat' && data.serviceName in ['Drenaj limfatic', 'Lymphatic drainage']) ||
-        (data.serviceKey == 'aromaterapie' && data.serviceName in ['Masaj cu aromaterapie', 'Aromatherapy massage']);
+        (data.serviceKey == 'aromaterapie' && data.serviceName in ['Masaj cu aromaterapie', 'Aromatherapy massage']) ||
+        (data.serviceKey == 'anticelulitic' && data.serviceName in ['Masaj anticelulitic', 'Anti-cellulite massage']) ||
+        (data.serviceKey == 'sheaAfrican' && data.serviceName in ['Masaj african cu unt de shea', 'African massage with shea butter']) ||
+        (data.serviceKey == 'bamboo' && data.serviceName in ['Masaj cu bețe de bambus', 'Bamboo stick massage']) ||
+        (data.serviceKey == 'foot' && data.serviceName in ['Masaj pentru picioare', 'Foot massage']) ||
+        (data.serviceKey == 'facial' && data.serviceName in ['Masaj facial', 'Facial massage']);
     }
 
     function validSession(data) {
@@ -73,9 +78,6 @@ service cloud.firestore {
     }
 
     match /bookings/{bookingId} {
-      // Guests and signed-in customers may create tightly validated requests.
-      // Signed-in requests are linked to the Firebase UID so the customer can
-      // later view and cancel only their own appointment.
       allow create: if
         request.resource.data.keys().hasOnly([
           'reference',
@@ -99,7 +101,11 @@ service cloud.firestore {
           'source',
           'createdAt',
           'customerUid',
-          'customerEmail'
+          'customerEmail',
+          'privacyNoticeVersion',
+          'privacyAcknowledgedAt',
+          'termsVersion',
+          'termsAcceptedAt'
         ]) &&
         validCustomerIdentity(request.resource.data) &&
         request.resource.data.reference is string &&
@@ -108,11 +114,8 @@ service cloud.firestore {
         request.resource.data.name.size() >= 2 &&
         request.resource.data.name.size() <= 120 &&
         request.resource.data.phone is string &&
-        request.resource.data.phone.size() >= 7 &&
-        request.resource.data.phone.size() <= 24 &&
-        request.resource.data.whatsapp is string &&
-        request.resource.data.whatsapp.size() >= 7 &&
-        request.resource.data.whatsapp.size() <= 24 &&
+        request.resource.data.phone.matches('^\\+[1-9][0-9]{7,14}$') &&
+        request.resource.data.whatsapp == request.resource.data.phone &&
         validService(request.resource.data) &&
         validSession(request.resource.data) &&
         request.resource.data.appointmentDate is string &&
@@ -131,14 +134,14 @@ service cloud.firestore {
         request.resource.data.language in ['ro', 'en'] &&
         request.resource.data.status == 'pending' &&
         request.resource.data.source == 'website' &&
-        request.resource.data.createdAt is timestamp;
+        request.resource.data.createdAt is timestamp &&
+        request.resource.data.privacyNoticeVersion == '2026-09-19' &&
+        request.resource.data.privacyAcknowledgedAt is timestamp &&
+        request.resource.data.termsVersion == '2026-09-19' &&
+        request.resource.data.termsAcceptedAt is timestamp;
 
-      // The owner sees all bookings. A signed-in customer can only see a
-      // booking explicitly linked to their Firebase UID.
       allow read: if isOwnerAdmin() || isBookingCustomer(resource.data);
 
-      // Owner workflow edits remain restricted. Customers can only cancel an
-      // appointment that is still pending or confirmed.
       allow update: if
         (
           isOwnerAdmin() &&
@@ -155,6 +158,34 @@ service cloud.firestore {
         validCustomerCancellation();
 
       allow delete: if false;
+    }
+
+    // Public availability intentionally contains no customer identity or
+    // contact data. Visitors can read confirmed occupied slots only.
+    match /availability/{date}/slots/{slotId} {
+      allow read: if true;
+
+      allow create, update: if
+        isOwnerAdmin() &&
+        request.resource.data.keys().hasOnly([
+          'startTime',
+          'durationMinutes',
+          'status',
+          'updatedAt'
+        ]) &&
+        request.resource.data.startTime is string &&
+        request.resource.data.startTime.size() == 5 &&
+        request.resource.data.durationMinutes in [60, 90, 120] &&
+        request.resource.data.status == 'booked' &&
+        request.resource.data.updatedAt is timestamp;
+
+      allow delete: if
+        isOwnerAdmin() ||
+        (
+          request.auth != null &&
+          getAfter(/databases/$(database)/documents/bookings/$(slotId)).data.customerUid == request.auth.uid &&
+          getAfter(/databases/$(database)/documents/bookings/$(slotId)).data.status == 'cancelled'
+        );
     }
 
     match /{document=**} {
