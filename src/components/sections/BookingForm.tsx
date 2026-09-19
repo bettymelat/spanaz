@@ -366,7 +366,20 @@ export function BookingForm() {
           type="checkbox"
           className="mt-1 h-5 w-5 shrink-0 rounded border-input accent-[var(--primary)]"
         />
-        <span>{t.booking.consent}</span>
+        <span>
+          {t.booking.consent}{" "}
+          <a href="/privacy" className="underline underline-offset-2 hover:text-foreground">
+            {lang === "ro" ? "Confidențialitate" : "Privacy"}
+          </a>
+          {" · "}
+          <a href="/terms" className="underline underline-offset-2 hover:text-foreground">
+            {lang === "ro" ? "Termeni" : "Terms"}
+          </a>
+          {" · "}
+          <a href="/cancellation" className="underline underline-offset-2 hover:text-foreground">
+            {lang === "ro" ? "Anulare" : "Cancellation"}
+          </a>
+        </span>
       </label>
       {errors.consent && <p className="mt-1 text-xs text-destructive">{errors.consent}</p>}
 
