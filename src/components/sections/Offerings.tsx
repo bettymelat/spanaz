@@ -32,7 +32,7 @@ export function Offerings() {
   return (
     <section id="servicii" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 lg:py-24">
       <SectionHeading title={copy.title} subtitle={copy.subtitle} />
-      <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {SERVICES.map((service) => (
           <article key={service.key} className="surface-card flex flex-col p-6 transition-shadow hover:shadow-lift">
             <Leaf className="h-5 w-5 text-gold" />
