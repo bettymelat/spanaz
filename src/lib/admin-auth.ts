@@ -38,7 +38,7 @@ type RefreshResponse = {
 const FIREBASE_MANAGED_REFRESH_TOKEN = "firebase-managed";
 
 function getApiKey() {
-  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY?.trim();
+  const apiKey = import.meta.env["VITE_FIREBASE_API_KEY"]?.trim();
   if (!apiKey) throw new Error("Firebase authentication is not configured.");
   return apiKey;
 }
