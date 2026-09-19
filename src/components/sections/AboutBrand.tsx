@@ -1,6 +1,6 @@
 import founderImage from "@/assets/founder-portrait.jpg";
 import oilsImage from "@/assets/oils-towels.jpg";
-import treatmentImage from "@/assets/massage-treatment.jpg";
+import treatmentImage from "@/assets/oils-towels.jpg";
 import { useI18n } from "@/lib/i18n";
 
 export function AboutBrand() {

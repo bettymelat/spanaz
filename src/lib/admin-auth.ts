@@ -1,3 +1,6 @@
+import { getApp, getApps } from "firebase/app";
+import { getAuth } from "firebase/auth";
+
 export const OWNER_ADMIN_EMAIL = "homespanaz@gmail.com";
 
 const SESSION_KEY = "spanaz-admin-session-v1";
@@ -31,6 +34,8 @@ type RefreshResponse = {
   expires_in?: string;
   error?: { message?: string };
 };
+
+const FIREBASE_MANAGED_REFRESH_TOKEN = "firebase-managed";
 
 function getApiKey() {
   const apiKey = import.meta.env.VITE_FIREBASE_API_KEY?.trim();
@@ -81,6 +86,29 @@ function saveSession(session: AdminSession) {
   if (typeof window !== "undefined") {
     window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   }
+}
+
+async function getFirebaseOwnerSession(): Promise<AdminSession | null> {
+  if (typeof window === "undefined" || getApps().length === 0) return null;
+
+  const user = getAuth(getApp()).currentUser;
+  if (!user) return null;
+
+  await user.reload();
+  if (normalizeEmail(user.email ?? "") !== OWNER_ADMIN_EMAIL || !user.emailVerified) {
+    return null;
+  }
+
+  const tokenResult = await user.getIdTokenResult();
+  const session: AdminSession = {
+    email: OWNER_ADMIN_EMAIL,
+    localId: user.uid,
+    idToken: tokenResult.token,
+    refreshToken: FIREBASE_MANAGED_REFRESH_TOKEN,
+    expiresAt: new Date(tokenResult.expirationTime).getTime(),
+  };
+  saveSession(session);
+  return session;
 }
 
 export function clearAdminSession() {
@@ -228,15 +256,18 @@ export async function getValidAdminSession(): Promise<AdminSession | null> {
   const session = getStoredAdminSession();
   if (!session || normalizeEmail(session.email) !== OWNER_ADMIN_EMAIL) {
     clearAdminSession();
-    return null;
+    return getFirebaseOwnerSession().catch(() => null);
   }
 
   if (session.expiresAt - Date.now() > 2 * 60 * 1000) return session;
 
   try {
+    if (session.refreshToken === FIREBASE_MANAGED_REFRESH_TOKEN) {
+      return await getFirebaseOwnerSession();
+    }
     return await refreshAdminSession(session);
   } catch {
     clearAdminSession();
-    return null;
+    return getFirebaseOwnerSession().catch(() => null);
   }
 }

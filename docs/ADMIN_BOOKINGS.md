@@ -25,6 +25,11 @@ After login, the owner can:
 - cancel an appointment without deleting its history
 - refresh the booking list
 
+The owner can also sign in from the **Account** section on the homepage. When
+the signed-in Firebase user is the verified `homespanaz@gmail.com` account, the
+homepage shows **Open admin dashboard**. The dashboard reuses that Firebase
+session and does not grant admin access to other customer accounts.
+
 The dashboard warns before confirming a time that overlaps another confirmed booking. The overlap check uses the treatment duration plus a 30-minute buffer.
 
 ## Security model
@@ -195,18 +200,17 @@ Before using the system with real customers:
 3. Submit a test booking.
 4. Confirm the customer gets an `SN-...` reference.
 5. Verify the request appears in Firestore with `status = pending`.
-6. Open `/admin/login`.
-7. Sign in as the verified owner.
-8. Confirm the test booking appears under Pending.
-9. Test Call and WhatsApp.
-10. Change date/time and save.
-11. Confirm the booking.
-12. Verify it moves to Confirmed.
-13. Create an overlapping test booking and verify the dashboard warns before confirming it.
-14. Mark the first booking Completed.
-15. Cancel the second booking.
-16. Log out.
-17. Open `/admin/bookings` directly and verify it returns to login.
-18. Verify an unauthenticated Firestore request cannot list bookings.
+6. Sign in from the homepage Account section as the verified owner, then open the admin dashboard.
+7. Confirm the test booking appears under Pending.
+8. Test Call and WhatsApp.
+9. Change date/time and save.
+10. Confirm the booking.
+11. Verify it moves to Confirmed.
+12. Create an overlapping test booking and verify the dashboard warns before confirming it.
+13. Mark the first booking Completed.
+14. Cancel the second booking.
+15. Log out.
+16. Open `/admin/bookings` directly and verify it returns to login.
+17. Verify an unauthenticated Firestore request cannot list bookings.
 
 Only after this complete flow passes should online booking be considered production-ready.

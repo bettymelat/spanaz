@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import type { User } from "firebase/auth";
 import {
   customerAuthError,
@@ -8,6 +9,12 @@ import {
   registerCustomer,
   subscribeToCustomerAuth,
 } from "@/lib/customer-auth";
+
+const OWNER_ADMIN_EMAIL = "homespanaz@gmail.com";
+
+function hasAdminPermission(user: User) {
+  return user.email?.trim().toLowerCase() === OWNER_ADMIN_EMAIL && user.emailVerified;
+}
 
 export function CustomerAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -73,6 +80,14 @@ export function CustomerAuth() {
             <p className="eyebrow">SPA NAZ ACCOUNT</p>
             <h2 className="mt-2 text-2xl">Welcome back</h2>
             <p className="mt-2 text-sm text-muted-foreground">{user.email}</p>
+            {hasAdminPermission(user) && (
+              <Link
+                to="/admin/bookings"
+                className="mt-4 inline-flex rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground"
+              >
+                Open admin dashboard
+              </Link>
+            )}
           </div>
           <button
             type="button"
