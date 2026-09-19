@@ -73,9 +73,9 @@ export function Footer() {
             {t.footer.legalTitle}
           </h3>
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
-            <li>{t.footer.privacy}</li>
-            <li>{t.footer.terms}</li>
-            <li>{t.footer.cancellation}</li>
+            <li><Link to="/privacy" className="transition-colors hover:text-foreground">{t.footer.privacy}</Link></li>
+            <li><Link to="/terms" className="transition-colors hover:text-foreground">{t.footer.terms}</Link></li>
+            <li><Link to="/cancellation" className="transition-colors hover:text-foreground">{t.footer.cancellation}</Link></li>
           </ul>
           <Link
             to="/admin/login"
