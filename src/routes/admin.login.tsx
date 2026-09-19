@@ -152,7 +152,7 @@ function AdminLogin() {
           </button>
 
           <p className="mt-6 border-t border-border pt-5 text-xs leading-relaxed text-muted-foreground">
-            There is no public admin registration. The owner account is created with the repository setup script and must verify its email before dashboard access is allowed.
+            There is no public admin registration. The owner account is created once in Firebase Console and must verify its email before dashboard access is allowed.
           </p>
         </div>
       </div>
