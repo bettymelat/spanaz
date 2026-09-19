@@ -50,13 +50,13 @@ type FirestoreDocument = {
 };
 
 function getProjectId() {
-  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim();
+  const projectId = import.meta.env["VITE_FIREBASE_PROJECT_ID"]?.trim();
   if (!projectId) throw new Error("Firebase project is not configured.");
   return projectId;
 }
 
 function getApiKey() {
-  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY?.trim();
+  const apiKey = import.meta.env["VITE_FIREBASE_API_KEY"]?.trim();
   if (!apiKey) throw new Error("Firebase API key is not configured.");
   return apiKey;
 }
@@ -161,15 +161,15 @@ export async function updateAdminBooking(
     updatedBy: stringValue(session.email),
   };
 
-  if (patch.status) fields.status = stringValue(patch.status);
+  if (patch.status) fields["status"] = stringValue(patch.status);
   if (patch.confirmedDate !== undefined) {
-    fields.confirmedDate = stringValue(patch.confirmedDate);
+    fields["confirmedDate"] = stringValue(patch.confirmedDate);
   }
   if (patch.confirmedTime !== undefined) {
-    fields.confirmedTime = stringValue(patch.confirmedTime);
+    fields["confirmedTime"] = stringValue(patch.confirmedTime);
   }
   if (patch.internalNote !== undefined) {
-    fields.internalNote = stringValue(patch.internalNote.slice(0, 1500));
+    fields["internalNote"] = stringValue(patch.internalNote.slice(0, 1500));
   }
 
   const endpoint = new URL(
