@@ -1,9 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isOwnerAdmin() {
+      return
+        request.auth != null &&
+        request.auth.token.email_verified == true &&
+        request.auth.token.email == 'homespanaz@gmail.com';
+    }
+
     function validService(data) {
       return
-        (data.serviceKey == 'relaxare' && data.serviceName in ['Masaj de relaxare', 'Relaxation massage']) ||
+        (data.serviceKey == 'relaxare' && data.serviceName in [
+          'Masaj de relaxare',
+          'Relaxation massage',
+          'Experiența de Relaxare',
+          'The Relaxation Experience'
+        ]) ||
         (data.serviceKey == 'deepTissue' && data.serviceName in ['Masaj deep tissue', 'Deep tissue massage']) ||
         (data.serviceKey == 'spateGat' && data.serviceName in ['Drenaj limfatic', 'Lymphatic drainage']) ||
         (data.serviceKey == 'aromaterapie' && data.serviceName in ['Masaj cu aromaterapie', 'Aromatherapy massage']);
@@ -16,11 +28,21 @@ service cloud.firestore {
         (data.sessionKey == 'signature' && data.sessionName == 'Signature' && data.durationMinutes == 120 && data.priceLei == 340);
     }
 
+    function validAdminManagedFields(data) {
+      return
+        data.status in ['pending', 'confirmed', 'completed', 'cancelled'] &&
+        (!('confirmedDate' in data) || (data.confirmedDate is string && data.confirmedDate.size() <= 10)) &&
+        (!('confirmedTime' in data) || (data.confirmedTime is string && data.confirmedTime.size() <= 5)) &&
+        (!('internalNote' in data) || (data.internalNote is string && data.internalNote.size() <= 1500)) &&
+        data.updatedAt is timestamp &&
+        data.updatedBy == request.auth.token.email;
+    }
+
     match /bookings/{bookingId} {
-      // Public website visitors may create a tightly validated booking request.
-      // They can never list, read, edit, confirm, or delete booking records.
+      // Public visitors can only create a tightly validated booking request.
       allow create: if
         request.resource.data.keys().hasOnly([
+          'reference',
           'name',
           'phone',
           'whatsapp',
@@ -41,6 +63,8 @@ service cloud.firestore {
           'source',
           'createdAt'
         ]) &&
+        request.resource.data.reference is string &&
+        request.resource.data.reference.matches('^SN-[0-9]{6}-[A-Z0-9]{4}$') &&
         request.resource.data.name is string &&
         request.resource.data.name.size() >= 2 &&
         request.resource.data.name.size() <= 120 &&
@@ -70,7 +94,24 @@ service cloud.firestore {
         request.resource.data.source == 'website' &&
         request.resource.data.createdAt is timestamp;
 
-      allow read, update, delete: if false;
+      // Only the verified owner account can view customer booking data.
+      allow read: if isOwnerAdmin();
+
+      // Customer data remains immutable. The owner may only change workflow fields.
+      allow update: if
+        isOwnerAdmin() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'confirmedDate',
+          'confirmedTime',
+          'internalNote',
+          'updatedAt',
+          'updatedBy'
+        ]) &&
+        validAdminManagedFields(request.resource.data);
+
+      // Preserve booking history. Normal operations cancel instead of deleting.
+      allow delete: if false;
     }
 
     match /{document=**} {

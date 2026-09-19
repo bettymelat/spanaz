@@ -11,7 +11,7 @@ export function AboutBrand() {
           eyebrow: "POVESTEA SPA NAZ",
           title: "Grijă personală, tehnică profesională și ospitalitate caldă.",
           lead:
-            "SPA NAZ a fost creat de o profesionistă în masaj de origine etiopiană care locuiește și lucrează în București.",
+            "SPA NAZ a fost creat de o profesionistă în masaj care locuiește și lucrează în București.",
           body:
             "Ideea este simplă: relaxarea de calitate nu ar trebui să însemne încă un drum prin oraș. SPA NAZ aduce experiența direct la tine și pune accent pe calm, atenție personală și o relație autentică cu fiecare client.",
           brand: "Feel the Naz Way",
@@ -22,7 +22,7 @@ export function AboutBrand() {
           eyebrow: "THE SPA NAZ STORY",
           title: "Personal care, professional technique and warm hospitality.",
           lead:
-            "SPA NAZ was created by an Ethiopian massage professional living and working in Bucharest.",
+            "SPA NAZ was created by a massage professional living and working in Bucharest.",
           body:
             "The idea is simple: high-quality relaxation should not mean another trip across the city. SPA NAZ brings the experience directly to you, with calm communication, personal attention and genuine care at the centre of every appointment.",
           brand: "Feel the Naz Way",
