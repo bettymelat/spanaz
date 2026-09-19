@@ -12,6 +12,13 @@ import {
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase-client";
 
+export type CustomerSession = {
+  uid: string;
+  email: string;
+  emailVerified: boolean;
+  idToken: string;
+};
+
 export async function subscribeToCustomerAuth(
   listener: (user: User | null) => void,
 ): Promise<Unsubscribe> {
@@ -20,7 +27,7 @@ export async function subscribeToCustomerAuth(
 }
 
 export async function getCurrentCustomerSession(): Promise<CustomerSession | null> {
-  const auth = await getCustomerAuth();
+  const auth = await getFirebaseAuth();
   await auth.authStateReady();
   const user = auth.currentUser;
   if (!user) return null;
@@ -52,7 +59,7 @@ export async function loginCustomerWithGoogle() {
 }
 
 export async function resendCustomerVerification() {
-  const auth = await getCustomerAuth();
+  const auth = await getFirebaseAuth();
   if (!auth.currentUser) throw new Error("Sign in before requesting email verification.");
   await sendEmailVerification(auth.currentUser);
 }
@@ -60,18 +67,13 @@ export async function resendCustomerVerification() {
 export async function resetCustomerPassword(email: string) {
   const normalized = email.trim();
   if (!normalized) throw new Error("Enter your email address first.");
-  const auth = await getCustomerAuth();
+  const auth = await getFirebaseAuth();
   await sendPasswordResetEmail(auth, normalized);
 }
 
 export async function logoutCustomer() {
   const auth = await getFirebaseAuth();
   await signOut(auth);
-}
-
-export async function resetCustomerPassword(email: string) {
-  const auth = await getFirebaseAuth();
-  await sendPasswordResetEmail(auth, email.trim());
 }
 
 export function customerAuthError(error: unknown) {

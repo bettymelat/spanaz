@@ -34,11 +34,11 @@ function readBinding(env: unknown, ...names: string[]) {
 function firebaseRuntimeConfig(env: unknown) {
   const projectId =
     readBinding(env, "VITE_FIREBASE_PROJECT_ID", "FIREBASE_PROJECT_ID") ||
-    import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+    import.meta.env["VITE_FIREBASE_PROJECT_ID"]?.trim() ||
     "";
   const apiKey =
     readBinding(env, "VITE_FIREBASE_API_KEY", "FIREBASE_API_KEY") ||
-    import.meta.env.VITE_FIREBASE_API_KEY?.trim() ||
+    import.meta.env["VITE_FIREBASE_API_KEY"]?.trim() ||
     "";
 
   return { projectId, apiKey };
@@ -52,6 +52,20 @@ function json(payload: unknown, status = 200) {
       "cache-control": "no-store",
       "x-content-type-options": "nosniff",
     },
+  });
+}
+
+function withSecurityHeaders(response: Response) {
+  const headers = new Headers(response.headers);
+  headers.set("x-content-type-options", "nosniff");
+  headers.set("x-frame-options", "SAMEORIGIN");
+  headers.set("referrer-policy", "strict-origin-when-cross-origin");
+  headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
   });
 }
 

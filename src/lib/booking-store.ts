@@ -1,4 +1,8 @@
 import { getFirebasePublicConfig } from "@/lib/runtime-config";
+import { getCurrentCustomerSession } from "@/lib/customer-auth";
+
+const BOOKING_PRIVACY_VERSION = "2026-09-19";
+const BOOKING_TERMS_VERSION = "2026-09-19";
 
 export type BookingRequest = {
   name: string;

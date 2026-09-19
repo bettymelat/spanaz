@@ -84,6 +84,12 @@ function friendlyAuthError(error: unknown) {
       return "Email/password login is not enabled in Firebase Authentication.";
     case "auth/unauthorized-domain":
       return "spanaz.ro is not authorized in Firebase Authentication.";
+    case "auth/network-request-failed":
+      return "Firebase could not connect. Check your internet connection and try again.";
+    case "auth/quota-exceeded":
+      return "Firebase email quota has been reached. Verify the owner manually in Firebase Console.";
+    case "auth/invalid-api-key":
+      return "Firebase authentication is misconfigured for this website.";
     default:
       return error instanceof Error ? error.message : "Authentication failed.";
   }
@@ -136,7 +142,14 @@ export async function signInOwner(email: string, password: string): Promise<Admi
     }
 
     if (!credential.user.emailVerified) {
-      await sendEmailVerification(credential.user).catch(() => undefined);
+      try {
+        await sendEmailVerification(credential.user);
+      } catch (verificationError) {
+        await signOut(auth);
+        throw new Error(
+          "Firebase could not send the verification email. " + friendlyAuthError(verificationError),
+        );
+      }
       await signOut(auth);
       throw new Error(
         "Verify the owner email first. A new verification email has been requested.",

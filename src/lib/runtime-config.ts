@@ -6,8 +6,8 @@ export type FirebasePublicConfig = {
 let configPromise: Promise<FirebasePublicConfig> | null = null;
 
 function buildTimeFallback(): FirebasePublicConfig | null {
-  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim();
-  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY?.trim();
+  const projectId = import.meta.env["VITE_FIREBASE_PROJECT_ID"]?.trim();
+  const apiKey = import.meta.env["VITE_FIREBASE_API_KEY"]?.trim();
   return projectId && apiKey ? { projectId, apiKey } : null;
 }
 

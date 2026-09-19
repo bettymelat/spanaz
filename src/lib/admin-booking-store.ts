@@ -157,6 +157,7 @@ export async function updateAdminBooking(
   patch: BookingAdminPatch,
 ): Promise<void> {
   const { projectId, apiKey } = await getFirebasePublicConfig();
+  const now = new Date().toISOString();
   const fields: Record<string, FirestoreValue> = {
     updatedAt: timestampValue(now),
     updatedBy: stringValue(session.email),
@@ -226,21 +227,9 @@ export async function updateAdminBooking(
 
   const endpoint =
     "https://firestore.googleapis.com/v1/projects/" +
-      encodeURIComponent(projectId) +
-      "/databases/(default)/documents/bookings/" +
-      encodeURIComponent(bookingId),
-  );
-  endpoint.searchParams.set("key", apiKey);
-  endpoint.searchParams.set("currentDocument.exists", "true");
-  Object.keys(fields).forEach((field) => {
-    endpoint.searchParams.append("updateMask.fieldPaths", field);
-  });
-
-  const endpoint =
-    "https://firestore.googleapis.com/v1/projects/" +
     encodeURIComponent(projectId) +
     "/databases/(default)/documents:commit?key=" +
-    encodeURIComponent(getApiKey());
+    encodeURIComponent(apiKey);
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -251,5 +240,51 @@ export async function updateAdminBooking(
     body: JSON.stringify({ writes }),
   });
 
+  if (!response.ok) throw new Error(await readError(response));
+}
+
+export async function seedConfirmedAvailability(
+  session: AdminSession,
+  bookings: AdminBooking[],
+): Promise<void> {
+  const { projectId, apiKey } = await getFirebasePublicConfig();
+  const confirmed = bookings.filter(
+    (booking) =>
+      booking.status === "confirmed" &&
+      Boolean(booking.confirmedDate || booking.appointmentDate) &&
+      Boolean(booking.confirmedTime || booking.appointmentTime),
+  );
+  if (confirmed.length === 0) return;
+
+  const writes = confirmed.map((booking) => ({
+    update: {
+      name: documentName(
+        projectId,
+        "availability/" +
+          (booking.confirmedDate || booking.appointmentDate) +
+          "/slots/" +
+          booking.id,
+      ),
+      fields: {
+        startTime: stringValue(booking.confirmedTime || booking.appointmentTime),
+        durationMinutes: integerValue(booking.durationMinutes),
+        status: stringValue("booked"),
+        updatedAt: timestampValue(new Date().toISOString()),
+      },
+    },
+  }));
+  const endpoint =
+    "https://firestore.googleapis.com/v1/projects/" +
+    encodeURIComponent(projectId) +
+    "/databases/(default)/documents:commit?key=" +
+    encodeURIComponent(apiKey);
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: "Bearer " + session.idToken,
+    },
+    body: JSON.stringify({ writes }),
+  });
   if (!response.ok) throw new Error(await readError(response));
 }
