@@ -223,11 +223,12 @@ function AdminBookings() {
     status?: BookingStatus,
     includeSchedule = false,
   ) => {
-    const validSession = session ?? (await getValidAdminSession());
+    const validSession = await getValidAdminSession();
     if (!validSession) {
       window.location.replace("/admin/login");
       return;
     }
+    setSession(validSession);
 
     const draft = scheduleDrafts[booking.id] ?? {
       date: booking.confirmedDate || booking.appointmentDate,
