@@ -45,7 +45,7 @@ function createBookingReference() {
   }
 
   let suffix = "";
-  for (const byte of bytes) suffix += alphabet[byte % alphabet.length];
+  for (const byte of bytes) suffix += alphabet.charAt(byte % alphabet.length);
   return "SN-" + yy + mm + dd + "-" + suffix;
 }
 
