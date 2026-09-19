@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Bell,
   CalendarCheck,
   CheckCircle2,
   Clock3,
@@ -133,6 +134,8 @@ function AdminBookings() {
   const [filter, setFilter] = useState<BookingStatus | "all">("pending");
   const [query, setQuery] = useState("");
   const [savingId, setSavingId] = useState("");
+  const [alertsEnabled, setAlertsEnabled] = useState(false);
+  const knownBookingIds = useRef<Set<string> | null>(null);
   const [scheduleDrafts, setScheduleDrafts] = useState<
     Record<string, { date: string; time: string; note: string }>
   >({});
@@ -150,6 +153,32 @@ function AdminBookings() {
       }
       setSession(validSession);
       const rows = await listAdminBookings(validSession);
+
+      const known = knownBookingIds.current;
+      if (
+        known &&
+        typeof Notification !== "undefined" &&
+        Notification.permission === "granted"
+      ) {
+        const newPending = rows.filter(
+          (booking) => booking.status === "pending" && !known.has(booking.id),
+        );
+        if (newPending.length > 0) {
+          const first = newPending[0];
+          new Notification(
+            newPending.length === 1
+              ? "New SPA NAZ booking"
+              : newPending.length + " new SPA NAZ bookings",
+            {
+              body:
+                newPending.length === 1 && first
+                  ? first.name + " · " + first.reference
+                  : "Open the booking dashboard to review them.",
+            },
+          );
+        }
+      }
+      knownBookingIds.current = new Set(rows.map((booking) => booking.id));
       setBookings(rows);
       setScheduleDrafts((current) => {
         const next = { ...current };
@@ -173,6 +202,9 @@ function AdminBookings() {
   };
 
   useEffect(() => {
+    if (typeof Notification !== "undefined") {
+      setAlertsEnabled(Notification.permission === "granted");
+    }
     void load();
 
     const interval = window.setInterval(() => {
@@ -285,6 +317,21 @@ function AdminBookings() {
     }
   };
 
+  const enableAlerts = async () => {
+    setError("");
+    if (typeof Notification === "undefined") {
+      setError("Browser notifications are not supported on this device.");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    const granted = permission === "granted";
+    setAlertsEnabled(granted);
+    if (!granted) {
+      setError("Browser alerts were not enabled. You can still rely on automatic dashboard refresh.");
+    }
+  };
+
   const exportCsv = () => {
     const escape = (value: string | number) => {
       const text = String(value ?? "");
@@ -371,6 +418,15 @@ function AdminBookings() {
             <h1 className="mt-1 text-2xl">Bookings</h1>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void enableAlerts()}
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium"
+              title={alertsEnabled ? "Browser booking alerts are enabled" : "Enable browser booking alerts"}
+            >
+              <Bell className="h-4 w-4" />
+              <span className="hidden xl:inline">{alertsEnabled ? "Alerts on" : "Enable alerts"}</span>
+            </button>
             <button
               type="button"
               onClick={exportCsv}
