@@ -244,7 +244,10 @@ export function CustomerAuth() {
           </button>
 
           <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-            By creating an account, you agree to the SPA NAZ terms and acknowledge the privacy policy.
+            By creating an account, you agree to the{" "}
+            <Link to="/terms" className="underline underline-offset-2">SPA NAZ terms</Link>
+            {" "}and acknowledge the{" "}
+            <Link to="/privacy" className="underline underline-offset-2">privacy policy</Link>.
           </p>
         </div>
       </div>
