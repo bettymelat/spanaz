@@ -1,3 +1,5 @@
+import { getCurrentCustomerSession } from "@/lib/customer-auth";
+
 export type BookingRequest = {
   name: string;
   phone: string;
@@ -65,11 +67,8 @@ export async function createBooking(
   );
   endpoint.searchParams.set("key", apiKey);
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      fields: {
+  const customerSession = await getCurrentCustomerSession().catch(() => null);
+  const fields: Record<string, unknown> = {
         reference: stringValue(reference),
         name: stringValue(input.name),
         phone: stringValue(input.phone),
@@ -90,10 +89,25 @@ export async function createBooking(
         status: stringValue("pending"),
         source: stringValue("website"),
         createdAt: timestampValue(new Date().toISOString()),
-      },
-    }),
+  };
+
+  if (customerSession) {
+    fields.customerUid = stringValue(customerSession.uid);
+    fields.customerEmail = stringValue(customerSession.email);
+  }
+
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (customerSession?.idToken) {
+    headers.authorization = "Bearer " + customerSession.idToken;
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ fields }),
   });
 
+  if (!response.ok) {
   if (!response.ok) {
     let detail = "Firestore returned " + response.status;
     try {
