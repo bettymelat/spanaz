@@ -1,4 +1,4 @@
-import { Facebook, Instagram, LockKeyhole, Music2 } from "lucide-react";
+import { Facebook, Instagram, Music2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { BUSINESS } from "@/content/business";
@@ -31,17 +31,25 @@ export function Footer() {
           <p className="mt-4 text-sm text-muted-foreground">
             {BUSINESS.city}, {BUSINESS.country}
           </p>
-          <a href={`mailto:${BUSINESS.bookingEmail}`} className="mt-2 inline-block text-sm text-muted-foreground underline-offset-4 hover:underline">
+          <a
+            href={`mailto:${BUSINESS.bookingEmail}`}
+            className="mt-2 inline-block text-sm text-muted-foreground underline-offset-4 hover:underline"
+          >
             {BUSINESS.bookingEmail}
           </a>
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold uppercase tracking-widest text-foreground">{t.footer.linksTitle}</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-widest text-foreground">
+            {t.footer.linksTitle}
+          </h3>
           <ul className="mt-4 space-y-2.5">
             {links.map((link) => (
               <li key={link.label}>
-                <a href={link.href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                <a
+                  href={link.href}
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
                   {link.label}
                 </a>
               </li>
@@ -52,7 +60,9 @@ export function Footer() {
         <div>
           {socials.length > 0 && (
             <>
-              <h3 className="text-sm font-semibold uppercase tracking-widest text-foreground">{t.footer.socialTitle}</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-foreground">
+                {t.footer.socialTitle}
+              </h3>
               <div className="mt-4 flex gap-3">
                 {socials.map(({ href, label, Icon }) => (
                   <a
@@ -69,24 +79,34 @@ export function Footer() {
               </div>
             </>
           )}
-          <h3 className={`${socials.length > 0 ? "mt-8" : ""} text-sm font-semibold uppercase tracking-widest text-foreground`}>
+
+          <h3
+            className={`${socials.length > 0 ? "mt-8" : ""} text-sm font-semibold uppercase tracking-widest text-foreground`}
+          >
             {t.footer.legalTitle}
           </h3>
           <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
-            <li>{t.footer.privacy}</li>
-            <li>{t.footer.terms}</li>
-            <li>{t.footer.cancellation}</li>
+            <li>
+              <Link to="/privacy" className="transition-colors hover:text-foreground">
+                {t.footer.privacy}
+              </Link>
+            </li>
+            <li>
+              <Link to="/terms" className="transition-colors hover:text-foreground">
+                {t.footer.terms}
+              </Link>
+            </li>
+            <li>
+              <Link to="/cancellation" className="transition-colors hover:text-foreground">
+                {t.footer.cancellation}
+              </Link>
+            </li>
           </ul>
-          <Link
-            to="/admin/login"
-            className="mt-6 inline-flex items-center gap-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <LockKeyhole className="h-3.5 w-3.5" />
-            Owner login
-          </Link>
         </div>
       </div>
-      <div className="border-t border-border/70 py-5 text-center text-xs text-muted-foreground">{t.footer.rights}</div>
+      <div className="border-t border-border/70 py-5 text-center text-xs text-muted-foreground">
+        {t.footer.rights}
+      </div>
     </footer>
   );
 }

@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Bell,
   CalendarCheck,
   CheckCircle2,
   Clock3,
+  Download,
   ExternalLink,
   Loader2,
   LogOut,
@@ -21,6 +23,7 @@ import {
 } from "@/lib/admin-auth";
 import {
   listAdminBookings,
+  seedConfirmedAvailability,
   updateAdminBooking,
   type AdminBooking,
   type BookingStatus,
@@ -132,6 +135,9 @@ function AdminBookings() {
   const [filter, setFilter] = useState<BookingStatus | "all">("pending");
   const [query, setQuery] = useState("");
   const [savingId, setSavingId] = useState("");
+  const [alertsEnabled, setAlertsEnabled] = useState(false);
+  const knownBookingIds = useRef<Set<string> | null>(null);
+  const availabilitySeeded = useRef(false);
   const [scheduleDrafts, setScheduleDrafts] = useState<
     Record<string, { date: string; time: string; note: string }>
   >({});
@@ -149,6 +155,37 @@ function AdminBookings() {
       }
       setSession(validSession);
       const rows = await listAdminBookings(validSession);
+
+      if (!availabilitySeeded.current) {
+        await seedConfirmedAvailability(validSession, rows);
+        availabilitySeeded.current = true;
+      }
+
+      const known = knownBookingIds.current;
+      if (
+        known &&
+        typeof Notification !== "undefined" &&
+        Notification.permission === "granted"
+      ) {
+        const newPending = rows.filter(
+          (booking) => booking.status === "pending" && !known.has(booking.id),
+        );
+        if (newPending.length > 0) {
+          const first = newPending[0];
+          new Notification(
+            newPending.length === 1
+              ? "New SPA NAZ booking"
+              : newPending.length + " new SPA NAZ bookings",
+            {
+              body:
+                newPending.length === 1 && first
+                  ? first.name + " · " + first.reference
+                  : "Open the booking dashboard to review them.",
+            },
+          );
+        }
+      }
+      knownBookingIds.current = new Set(rows.map((booking) => booking.id));
       setBookings(rows);
       setScheduleDrafts((current) => {
         const next = { ...current };
@@ -172,7 +209,16 @@ function AdminBookings() {
   };
 
   useEffect(() => {
+    if (typeof Notification !== "undefined") {
+      setAlertsEnabled(Notification.permission === "granted");
+    }
     void load();
+
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void load(true);
+    }, 60_000);
+
+    return () => window.clearInterval(interval);
   }, []);
 
   const counts = useMemo(
@@ -260,7 +306,7 @@ function AdminBookings() {
     setSavingId(booking.id);
     setError("");
     try {
-      await updateAdminBooking(validSession, booking.id, {
+      await updateAdminBooking(validSession, booking, {
         ...(status ? { status } : {}),
         ...(includeSchedule || status === "confirmed"
           ? {
@@ -276,6 +322,82 @@ function AdminBookings() {
     } finally {
       setSavingId("");
     }
+  };
+
+  const enableAlerts = async () => {
+    setError("");
+    if (typeof Notification === "undefined") {
+      setError("Browser notifications are not supported on this device.");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    const granted = permission === "granted";
+    setAlertsEnabled(granted);
+    if (!granted) {
+      setError("Browser alerts were not enabled. You can still rely on automatic dashboard refresh.");
+    }
+  };
+
+  const exportCsv = () => {
+    const escape = (value: string | number) => {
+      const text = String(value ?? "");
+      return '"' + text.replaceAll('"', '""') + '"';
+    };
+    const header = [
+      "Reference",
+      "Status",
+      "Customer",
+      "Phone",
+      "WhatsApp",
+      "Service",
+      "Session",
+      "Duration minutes",
+      "Price lei",
+      "Requested date",
+      "Requested time",
+      "Confirmed date",
+      "Confirmed time",
+      "Sector",
+      "Address",
+      "People",
+      "Customer message",
+      "Internal note",
+      "Created at",
+      "Updated at",
+      "Updated by",
+    ];
+    const rows = bookings.map((booking) => [
+      booking.reference,
+      booking.status,
+      booking.name,
+      booking.phone,
+      booking.whatsapp,
+      booking.serviceName,
+      booking.sessionName,
+      booking.durationMinutes,
+      booking.priceLei,
+      booking.appointmentDate,
+      booking.appointmentTime,
+      booking.confirmedDate,
+      booking.confirmedTime,
+      booking.sector,
+      booking.address,
+      booking.people,
+      booking.message,
+      booking.internalNote,
+      booking.createdAt,
+      booking.updatedAt,
+      booking.updatedBy,
+    ]);
+    const csv = [header, ...rows].map((row) => row.map(escape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "spanaz-bookings-" + new Date().toISOString().slice(0, 10) + ".csv";
+    anchor.click();
+    URL.revokeObjectURL(url);
   };
 
   const logout = () => {
@@ -303,6 +425,24 @@ function AdminBookings() {
             <h1 className="mt-1 text-2xl">Bookings</h1>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void enableAlerts()}
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium"
+              title={alertsEnabled ? "Browser booking alerts are enabled" : "Enable browser booking alerts"}
+            >
+              <Bell className="h-4 w-4" />
+              <span className="hidden xl:inline">{alertsEnabled ? "Alerts on" : "Enable alerts"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={bookings.length === 0}
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium disabled:opacity-50"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Export CSV</span>
+            </button>
             <button
               type="button"
               onClick={() => void load(true)}

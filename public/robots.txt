@@ -1,19 +1,26 @@
 User-agent: Googlebot
 Allow: /
 Disallow: /admin/
+Disallow: /account
 
 User-agent: Bingbot
 Allow: /
 Disallow: /admin/
+Disallow: /account
 
 User-agent: Twitterbot
 Allow: /
 Disallow: /admin/
+Disallow: /account
 
 User-agent: facebookexternalhit
 Allow: /
 Disallow: /admin/
+Disallow: /account
 
 User-agent: *
 Allow: /
 Disallow: /admin/
+Disallow: /account
+
+Sitemap: https://spanaz.ro/sitemap.xml

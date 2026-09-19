@@ -139,31 +139,92 @@ export async function listAdminBookings(session: AdminSession): Promise<AdminBoo
 }
 
 const stringValue = (value: string) => ({ stringValue: value });
+const integerValue = (value: number) => ({ integerValue: String(value) });
 const timestampValue = (value: string) => ({ timestampValue: value });
+
+function documentName(projectId: string, path: string) {
+  return (
+    "projects/" +
+    projectId +
+    "/databases/(default)/documents/" +
+    path
+  );
+}
 
 export async function updateAdminBooking(
   session: AdminSession,
-  bookingId: string,
+  booking: AdminBooking,
   patch: BookingAdminPatch,
 ): Promise<void> {
   const { projectId, apiKey } = await getFirebasePublicConfig();
   const fields: Record<string, FirestoreValue> = {
-    updatedAt: timestampValue(new Date().toISOString()),
+    updatedAt: timestampValue(now),
     updatedBy: stringValue(session.email),
   };
 
-  if (patch.status) fields.status = stringValue(patch.status);
+  if (patch.status) fields["status"] = stringValue(patch.status);
   if (patch.confirmedDate !== undefined) {
-    fields.confirmedDate = stringValue(patch.confirmedDate);
+    fields["confirmedDate"] = stringValue(patch.confirmedDate);
   }
   if (patch.confirmedTime !== undefined) {
-    fields.confirmedTime = stringValue(patch.confirmedTime);
+    fields["confirmedTime"] = stringValue(patch.confirmedTime);
   }
   if (patch.internalNote !== undefined) {
-    fields.internalNote = stringValue(patch.internalNote.slice(0, 1500));
+    fields["internalNote"] = stringValue(patch.internalNote.slice(0, 1500));
   }
 
-  const endpoint = new URL(
+  const nextStatus = patch.status ?? booking.status;
+  const nextDate =
+    (patch.confirmedDate ?? booking.confirmedDate) || booking.appointmentDate;
+  const nextTime =
+    (patch.confirmedTime ?? booking.confirmedTime) || booking.appointmentTime;
+
+  const oldDate = booking.confirmedDate || booking.appointmentDate;
+  const oldWasConfirmed = booking.status === "confirmed" && Boolean(oldDate);
+  const nextIsConfirmed =
+    nextStatus === "confirmed" && Boolean(nextDate) && Boolean(nextTime);
+
+  const writes: Array<Record<string, unknown>> = [
+    {
+      update: {
+        name: documentName(projectId, "bookings/" + booking.id),
+        fields,
+      },
+      updateMask: { fieldPaths: Object.keys(fields) },
+      currentDocument: { exists: true },
+    },
+  ];
+
+  if (oldWasConfirmed && (!nextIsConfirmed || oldDate !== nextDate)) {
+    writes.push({
+      delete: documentName(
+        projectId,
+        "availability/" + oldDate + "/slots/" + booking.id,
+      ),
+    });
+  }
+
+  if (nextIsConfirmed) {
+    writes.push({
+      update: {
+        name: documentName(
+          projectId,
+          "availability/" + nextDate + "/slots/" + booking.id,
+        ),
+        fields: {
+          startTime: stringValue(nextTime),
+          durationMinutes: integerValue(booking.durationMinutes),
+          status: stringValue("booked"),
+          updatedAt: timestampValue(now),
+        },
+      },
+      updateMask: {
+        fieldPaths: ["startTime", "durationMinutes", "status", "updatedAt"],
+      },
+    });
+  }
+
+  const endpoint =
     "https://firestore.googleapis.com/v1/projects/" +
       encodeURIComponent(projectId) +
       "/databases/(default)/documents/bookings/" +
@@ -175,13 +236,19 @@ export async function updateAdminBooking(
     endpoint.searchParams.append("updateMask.fieldPaths", field);
   });
 
+  const endpoint =
+    "https://firestore.googleapis.com/v1/projects/" +
+    encodeURIComponent(projectId) +
+    "/databases/(default)/documents:commit?key=" +
+    encodeURIComponent(getApiKey());
+
   const response = await fetch(endpoint, {
-    method: "PATCH",
+    method: "POST",
     headers: {
       "content-type": "application/json",
       authorization: "Bearer " + session.idToken,
     },
-    body: JSON.stringify({ fields }),
+    body: JSON.stringify({ writes }),
   });
 
   if (!response.ok) throw new Error(await readError(response));

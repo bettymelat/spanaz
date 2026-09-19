@@ -45,8 +45,19 @@ export const SESSION_OPTIONS = [
   { key: "signature", name: "Signature", minutes: 120, priceLei: 340, featured: false },
 ] as const;
 
-export type ServiceKey = "relaxare" | "deepTissue" | "spateGat" | "aromaterapie";
+export type ServiceKey =
+  | "relaxare"
+  | "deepTissue"
+  | "spateGat"
+  | "aromaterapie"
+  | "anticelulitic"
+  | "sheaAfrican"
+  | "bamboo"
+  | "foot"
+  | "facial";
+
 type LocalizedText = { ro: string; en: string };
+
 const standardDurations = SESSION_OPTIONS.map((session) => ({
   minutes: session.minutes,
   price: `${session.featured ? "★ " : ""}${session.priceLei} lei`,
@@ -94,6 +105,51 @@ export const SERVICES: {
     },
     durations: standardDurations,
   },
+  {
+    key: "anticelulitic",
+    name: { ro: "Masaj anticelulitic", en: "Anti-cellulite massage" },
+    description: {
+      ro: "Masaj corporal energic, focalizat pe zonele dorite, pentru stimulare locală și o senzație de tonifiere.",
+      en: "An energising body massage focused on selected areas for local stimulation and a more toned feeling.",
+    },
+    durations: standardDurations,
+  },
+  {
+    key: "sheaAfrican",
+    name: { ro: "Masaj african cu unt de shea", en: "African massage with shea butter" },
+    description: {
+      ro: "Experiență de masaj hrănitoare, cu unt de shea, pentru confortul pielii și relaxare profundă.",
+      en: "A nourishing massage experience using shea butter for skin comfort and deep relaxation.",
+    },
+    durations: standardDurations,
+  },
+  {
+    key: "bamboo",
+    name: { ro: "Masaj cu bețe de bambus", en: "Bamboo stick massage" },
+    description: {
+      ro: "Tehnică dinamică ce folosește bețe de bambus pentru presiune controlată și lucru muscular ritmic.",
+      en: "A dynamic technique using bamboo sticks for controlled pressure and rhythmic muscle work.",
+    },
+    durations: standardDurations,
+  },
+  {
+    key: "foot",
+    name: { ro: "Masaj pentru picioare", en: "Foot massage" },
+    description: {
+      ro: "Masaj concentrat pe tălpi, glezne și partea inferioară a picioarelor pentru relaxare și confort.",
+      en: "Focused work on the feet, ankles and lower legs for relaxation and comfort.",
+    },
+    durations: standardDurations,
+  },
+  {
+    key: "facial",
+    name: { ro: "Masaj facial", en: "Facial massage" },
+    description: {
+      ro: "Masaj delicat al feței și zonelor apropiate, conceput pentru relaxarea musculaturii faciale.",
+      en: "Gentle massage of the face and surrounding areas designed to relax facial muscles.",
+    },
+    durations: standardDurations,
+  },
 ];
 
 export const MEMBERSHIPS = [
@@ -107,8 +163,4 @@ export const MEMBERSHIPS = [
 
 export const SERVICE_AREAS = ["Sector 1", "Sector 4", "Sector 5", "Sector 6"] as const;
 
-/**
- * Add only genuine, permissioned client reviews here.
- * The homepage intentionally does not fabricate testimonials.
- */
 export const TESTIMONIALS: { stars: number; quote: string; author: string }[] = [];

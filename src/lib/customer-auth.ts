@@ -19,6 +19,21 @@ export async function subscribeToCustomerAuth(
   return onAuthStateChanged(auth, listener);
 }
 
+export async function getCurrentCustomerSession(): Promise<CustomerSession | null> {
+  const auth = await getCustomerAuth();
+  await auth.authStateReady();
+  const user = auth.currentUser;
+  if (!user) return null;
+
+  const token = await user.getIdToken();
+  return {
+    uid: user.uid,
+    email: user.email?.trim().toLowerCase() ?? "",
+    emailVerified: user.emailVerified,
+    idToken: token,
+  };
+}
+
 export async function registerCustomer(email: string, password: string) {
   const auth = await getFirebaseAuth();
   const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
@@ -34,6 +49,19 @@ export async function loginCustomer(email: string, password: string) {
 export async function loginCustomerWithGoogle() {
   const auth = await getFirebaseAuth();
   return signInWithPopup(auth, new GoogleAuthProvider());
+}
+
+export async function resendCustomerVerification() {
+  const auth = await getCustomerAuth();
+  if (!auth.currentUser) throw new Error("Sign in before requesting email verification.");
+  await sendEmailVerification(auth.currentUser);
+}
+
+export async function resetCustomerPassword(email: string) {
+  const normalized = email.trim();
+  if (!normalized) throw new Error("Enter your email address first.");
+  const auth = await getCustomerAuth();
+  await sendPasswordResetEmail(auth, normalized);
 }
 
 export async function logoutCustomer() {

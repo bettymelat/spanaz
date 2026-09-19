@@ -2,13 +2,27 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import type { User } from "firebase/auth";
 import {
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Loader2,
+  LockKeyhole,
+  Mail,
+  ShieldCheck,
+  Sparkles,
+  UserRound,
+} from "lucide-react";
+import {
   customerAuthError,
   loginCustomer,
   loginCustomerWithGoogle,
   logoutCustomer,
   registerCustomer,
+  resendCustomerVerification,
+  resetCustomerPassword,
   subscribeToCustomerAuth,
 } from "@/lib/customer-auth";
+import { useI18n } from "@/lib/i18n";
 
 const OWNER_ADMIN_EMAIL = "homespanaz@gmail.com";
 
@@ -17,12 +31,78 @@ function hasAdminPermission(user: User) {
 }
 
 export function CustomerAuth() {
+  const { lang } = useI18n();
   const [user, setUser] = useState<User | null>(null);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const copy =
+    lang === "ro"
+      ? {
+          eyebrow: "CONT SPA NAZ",
+          title: "Programările tale, într-un singur loc",
+          subtitle:
+            "Creează un cont pentru a urmări statusul rezervărilor, a vedea programările confirmate și a anula direct atunci când este nevoie.",
+          benefit1: "Vezi toate rezervările asociate contului",
+          benefit2: "Primești un status clar: în așteptare, confirmat, finalizat",
+          benefit3: "Poți anula rapid o programare eligibilă",
+          login: "Autentificare",
+          register: "Creează cont",
+          email: "Adresă de email",
+          password: "Parolă",
+          forgot: "Ai uitat parola?",
+          wait: "Se procesează…",
+          google: "Continuă cu Google",
+          or: "sau",
+          created: "Cont creat. Verifică emailul pentru linkul de confirmare.",
+          reset: "Emailul pentru resetarea parolei a fost trimis.",
+          welcome: "Bine ai revenit",
+          verified: "Email verificat",
+          notVerified: "Emailul nu este verificat încă",
+          resend: "Retrimite emailul de verificare",
+          sent: "Email de verificare trimis.",
+          bookings: "Rezervările mele",
+          admin: "Panou administrare",
+          signout: "Deconectare",
+          privacyLead: "Prin crearea contului accepți",
+          terms: "Termenii SPA NAZ",
+          privacy: "Politica de confidențialitate",
+        }
+      : {
+          eyebrow: "SPA NAZ ACCOUNT",
+          title: "Your appointments, in one place",
+          subtitle:
+            "Create an account to track booking status, see confirmed appointments and cancel eligible requests directly.",
+          benefit1: "Keep account-linked bookings together",
+          benefit2: "See clear pending, confirmed and completed status",
+          benefit3: "Cancel an eligible appointment quickly",
+          login: "Log in",
+          register: "Create account",
+          email: "Email address",
+          password: "Password",
+          forgot: "Forgot password?",
+          wait: "Please wait…",
+          google: "Continue with Google",
+          or: "or",
+          created: "Account created. Check your email for the verification link.",
+          reset: "Password reset email sent.",
+          welcome: "Welcome back",
+          verified: "Email verified",
+          notVerified: "Email not verified yet",
+          resend: "Resend verification email",
+          sent: "Verification email sent.",
+          bookings: "My bookings",
+          admin: "Admin dashboard",
+          signout: "Sign out",
+          privacyLead: "By creating an account, you agree to the",
+          terms: "SPA NAZ terms",
+          privacy: "privacy policy",
+        };
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
@@ -47,10 +127,15 @@ export function CustomerAuth() {
   const submit = async () => {
     if (submitting) return;
     setError("");
+    setNotice("");
     setSubmitting(true);
     try {
-      if (mode === "register") await registerCustomer(email, password);
-      else await loginCustomer(email, password);
+      if (mode === "register") {
+        await registerCustomer(email, password);
+        setNotice(copy.created);
+      } else {
+        await loginCustomer(email, password);
+      }
       setPassword("");
     } catch (authError) {
       setError(customerAuthError(authError));
@@ -62,6 +147,7 @@ export function CustomerAuth() {
   const googleSignIn = async () => {
     if (submitting) return;
     setError("");
+    setNotice("");
     setSubmitting(true);
     try {
       await loginCustomerWithGoogle();
@@ -72,112 +158,281 @@ export function CustomerAuth() {
     }
   };
 
+  const forgotPassword = async () => {
+    setError("");
+    setNotice("");
+    try {
+      await resetCustomerPassword(email);
+      setNotice(copy.reset);
+    } catch (authError) {
+      setError(customerAuthError(authError));
+    }
+  };
+
   if (user) {
+    const initial = (user.email?.[0] ?? "S").toUpperCase();
     return (
-      <section id="account" className="scroll-mt-24 border-y border-border bg-background py-12">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 sm:px-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="eyebrow">SPA NAZ ACCOUNT</p>
-            <h2 className="mt-2 text-2xl">Welcome back</h2>
-            <p className="mt-2 text-sm text-muted-foreground">{user.email}</p>
-            {hasAdminPermission(user) && (
-              <Link
-                to="/admin/bookings"
-                className="mt-4 inline-flex rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground"
-              >
-                Open admin dashboard
-              </Link>
-            )}
+      <section id="account" className="scroll-mt-24 bg-background py-14 lg:py-20">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6">
+          <div className="surface-card overflow-hidden">
+            <div className="border-b border-border bg-sand/70 p-6 sm:p-8">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary font-display text-2xl text-primary-foreground">
+                    {initial}
+                  </div>
+                  <div>
+                    <p className="eyebrow">{copy.eyebrow}</p>
+                    <h2 className="mt-1 text-2xl">{copy.welcome}</h2>
+                    <p className="mt-1 break-all text-sm text-muted-foreground">{user.email}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void logoutCustomer()}
+                  className="inline-flex items-center justify-center rounded-full border border-border bg-background px-5 py-3 text-sm font-medium"
+                >
+                  {copy.signout}
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 sm:p-8">
+              <div className="flex items-center gap-2 text-sm">
+                {user.emailVerified ? (
+                  <>
+                    <ShieldCheck className="h-4 w-4 text-emerald-700" />
+                    <span>{copy.verified}</span>
+                  </>
+                ) : (
+                  <>
+                    <LockKeyhole className="h-4 w-4 text-amber-700" />
+                    <span>{copy.notVerified}</span>
+                  </>
+                )}
+              </div>
+
+              {!user.emailVerified && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError("");
+                    setNotice("");
+                    void resendCustomerVerification()
+                      .then(() => setNotice(copy.sent))
+                      .catch((authError) => setError(customerAuthError(authError)));
+                  }}
+                  className="mt-3 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  {copy.resend}
+                </button>
+              )}
+
+              {notice && (
+                <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm">
+                  {notice}
+                </div>
+              )}
+              {error && (
+                <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                  {error}
+                </div>
+              )}
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  to="/account"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-5 py-3.5 text-sm font-medium text-primary-foreground"
+                >
+                  <UserRound className="h-4 w-4" />
+                  {copy.bookings}
+                </Link>
+                {hasAdminPermission(user) && (
+                  <Link
+                    to="/admin/bookings"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-primary px-5 py-3.5 text-sm font-medium text-primary"
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    {copy.admin}
+                  </Link>
+                )}
+              </div>
+            </div>
           </div>
-          <button
-            type="button"
-            onClick={() => void logoutCustomer()}
-            className="inline-flex rounded-full border border-border px-5 py-3 text-sm font-medium"
-          >
-            Sign out
-          </button>
         </div>
       </section>
     );
   }
 
   return (
-    <section id="account" className="scroll-mt-24 border-y border-border bg-background py-14">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-        <div>
-          <p className="eyebrow">SPA NAZ ACCOUNT</p>
-          <h2 className="mt-2 text-3xl">Keep your SPA NAZ details close</h2>
-          <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
-            Create an account or sign in with Google to make returning to SPA NAZ simple.
-          </p>
-        </div>
+    <section id="account" className="scroll-mt-24 bg-background py-16 lg:py-24">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-soft">
+          <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="relative overflow-hidden bg-sand p-7 sm:p-10 lg:p-12">
+              <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gold/10 blur-2xl" />
+              <div className="relative">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-gold-soft text-clay">
+                  <Sparkles className="h-5 w-5" />
+                </span>
+                <p className="eyebrow mt-6">{copy.eyebrow}</p>
+                <h2 className="mt-3 max-w-md text-4xl leading-tight">{copy.title}</h2>
+                <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
+                  {copy.subtitle}
+                </p>
 
-        <div className="surface-card p-5 sm:p-6">
-          <div className="flex gap-5 border-b border-border">
-            {(["login", "register"] as const).map((nextMode) => (
-              <button
-                key={nextMode}
-                type="button"
-                onClick={() => {
-                  setMode(nextMode);
-                  setError("");
-                }}
-                className={`border-b-2 pb-3 text-sm font-medium ${mode === nextMode ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}
-              >
-                {nextMode === "login" ? "Log in" : "Create account"}
-              </button>
-            ))}
+                <div className="mt-8 space-y-4">
+                  {[copy.benefit1, copy.benefit2, copy.benefit3].map((benefit) => (
+                    <div key={benefit} className="flex items-start gap-3">
+                      <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-background text-primary">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      </span>
+                      <p className="text-sm leading-relaxed text-foreground">{benefit}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 sm:p-8 lg:p-12">
+              <div className="mx-auto max-w-md">
+                <div className="grid grid-cols-2 rounded-full bg-muted p-1">
+                  {(["login", "register"] as const).map((nextMode) => (
+                    <button
+                      key={nextMode}
+                      type="button"
+                      onClick={() => {
+                        setMode(nextMode);
+                        setError("");
+                        setNotice("");
+                      }}
+                      className={
+                        "rounded-full px-4 py-2.5 text-sm font-medium transition " +
+                        (mode === nextMode
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground")
+                      }
+                    >
+                      {nextMode === "login" ? copy.login : copy.register}
+                    </button>
+                  ))}
+                </div>
+
+                <form
+                  className="mt-7 space-y-4"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void submit();
+                  }}
+                >
+                  <div>
+                    <label htmlFor="account-email" className="mb-1.5 block text-sm font-medium">
+                      {copy.email}
+                    </label>
+                    <div className="relative">
+                      <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        id="account-email"
+                        type="email"
+                        required
+                        autoComplete="email"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        className="w-full rounded-xl border border-input bg-background py-3.5 pl-11 pr-4 text-base outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="account-password" className="mb-1.5 block text-sm font-medium">
+                      {copy.password}
+                    </label>
+                    <div className="relative">
+                      <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        id="account-password"
+                        type={showPassword ? "text" : "password"}
+                        required
+                        minLength={6}
+                        autoComplete={mode === "login" ? "current-password" : "new-password"}
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        className="w-full rounded-xl border border-input bg-background py-3.5 pl-11 pr-12 text-base outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((value) => !value)}
+                        className="absolute right-3 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                      {error}
+                    </div>
+                  )}
+                  {notice && (
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm">
+                      {notice}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                  >
+                    {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {submitting ? copy.wait : mode === "login" ? copy.login : copy.register}
+                  </button>
+                </form>
+
+                {mode === "login" && (
+                  <button
+                    type="button"
+                    onClick={() => void forgotPassword()}
+                    className="mt-3 w-full text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
+                  >
+                    {copy.forgot}
+                  </button>
+                )}
+
+                <div className="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="h-px flex-1 bg-border" />
+                  {copy.or}
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => void googleSignIn()}
+                  disabled={submitting}
+                  className="inline-flex w-full items-center justify-center gap-3 rounded-full border border-border bg-background px-5 py-3.5 text-sm font-medium transition hover:bg-muted disabled:opacity-50"
+                >
+                  <span className="font-semibold">G</span>
+                  {copy.google}
+                </button>
+
+                {mode === "register" && (
+                  <p className="mt-5 text-center text-xs leading-relaxed text-muted-foreground">
+                    {copy.privacyLead}{" "}
+                    <Link to="/terms" className="font-medium underline underline-offset-2">
+                      {copy.terms}
+                    </Link>{" "}
+                    &{" "}
+                    <Link to="/privacy" className="font-medium underline underline-offset-2">
+                      {copy.privacy}
+                    </Link>
+                    .
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
-
-          <form
-            className="mt-5 space-y-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void submit();
-            }}
-          >
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="Email address"
-              className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-            />
-            <input
-              type="password"
-              required
-              minLength={6}
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Password"
-              className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-            />
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full rounded-full bg-primary px-5 py-3 text-sm font-medium text-primary-foreground disabled:opacity-50"
-            >
-              {submitting ? "Please wait…" : mode === "login" ? "Log in" : "Create account"}
-            </button>
-          </form>
-
-          <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="h-px flex-1 bg-border" />
-            or
-            <span className="h-px flex-1 bg-border" />
-          </div>
-          <button
-            type="button"
-            onClick={() => void googleSignIn()}
-            disabled={submitting}
-            className="w-full rounded-full border border-border px-5 py-3 text-sm font-medium disabled:opacity-50"
-          >
-            Continue with Google
-          </button>
         </div>
       </div>
     </section>

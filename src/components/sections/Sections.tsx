@@ -51,18 +51,17 @@ export function TrustBar() {
 }
 
 export function Services() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   return (
     <section id="servicii" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 sm:px-6 lg:py-24">
       <SectionHeading title={t.services.title} subtitle={t.services.subtitle} />
       <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {SERVICES.map((service) => {
-          const copy = t.services.items[service.key];
           return (
             <article key={service.key} className="surface-card flex flex-col p-6 transition-shadow hover:shadow-lift">
               <Leaf className="h-5 w-5 text-gold" />
-              <h3 className="mt-4 text-2xl">{copy.name}</h3>
-              <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">{copy.desc}</p>
+              <h3 className="mt-4 text-2xl">{service.name[lang]}</h3>
+              <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">{service.description[lang]}</p>
               <dl className="mt-5 space-y-1.5 border-t border-border pt-4 text-sm">
                 {service.durations.map((d) => (
                   <div key={d.minutes} className="flex items-baseline justify-between gap-3">
@@ -172,14 +171,14 @@ export function About() {
 }
 
 export function Pricing() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   return (
     <section id="preturi" className="mx-auto max-w-5xl scroll-mt-24 px-4 py-16 sm:px-6 lg:py-24">
       <SectionHeading title={t.pricing.title} subtitle={t.pricing.subtitle} />
       <div className="surface-card mt-12 divide-y divide-border">
         {SERVICES.map((service) => (
           <div key={service.key} className="grid gap-3 p-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-            <h3 className="text-xl uppercase tracking-[0.12em]">{t.services.items[service.key].name}</h3>
+            <h3 className="text-xl uppercase tracking-[0.12em]">{service.name[lang]}</h3>
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
               {service.durations.map((d) => (
                 <li key={d.minutes} className="text-muted-foreground">

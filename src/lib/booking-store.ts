@@ -3,7 +3,6 @@ import { getFirebasePublicConfig } from "@/lib/runtime-config";
 export type BookingRequest = {
   name: string;
   phone: string;
-  whatsapp: string;
   serviceKey: string;
   serviceName: string;
   sessionKey: string;
@@ -72,33 +71,52 @@ export async function createBooking(
   );
   endpoint.searchParams.set("key", apiKey);
 
+  const customerSession = await getCurrentCustomerSession().catch(() => null);
+  const now = new Date().toISOString();
+
+  const fields: Record<string, unknown> = {
+    reference: stringValue(reference),
+    name: stringValue(input.name),
+    phone: stringValue(input.phone),
+    // Kept for compatibility with the current owner dashboard. The booking UI
+    // now asks for one mobile/WhatsApp contact number only.
+    whatsapp: stringValue(input.phone),
+    serviceKey: stringValue(input.serviceKey),
+    serviceName: stringValue(input.serviceName),
+    sessionKey: stringValue(input.sessionKey),
+    sessionName: stringValue(input.sessionName),
+    durationMinutes: integerValue(input.durationMinutes),
+    priceLei: integerValue(input.priceLei),
+    appointmentDate: stringValue(input.date),
+    appointmentTime: stringValue(input.time),
+    sector: stringValue(input.sector),
+    address: stringValue(input.address),
+    people: integerValue(input.people),
+    message: stringValue(input.message),
+    language: stringValue(input.language),
+    status: stringValue("pending"),
+    source: stringValue("website"),
+    createdAt: timestampValue(now),
+    privacyNoticeVersion: stringValue(BOOKING_PRIVACY_VERSION),
+    privacyAcknowledgedAt: timestampValue(now),
+    termsVersion: stringValue(BOOKING_TERMS_VERSION),
+    termsAcceptedAt: timestampValue(now),
+  };
+
+  if (customerSession) {
+    fields["customerUid"] = stringValue(customerSession.uid);
+    fields["customerEmail"] = stringValue(customerSession.email);
+  }
+
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (customerSession?.idToken) {
+    headers["authorization"] = "Bearer " + customerSession.idToken;
+  }
+
   const response = await fetch(endpoint, {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      fields: {
-        reference: stringValue(reference),
-        name: stringValue(input.name),
-        phone: stringValue(input.phone),
-        whatsapp: stringValue(input.whatsapp),
-        serviceKey: stringValue(input.serviceKey),
-        serviceName: stringValue(input.serviceName),
-        sessionKey: stringValue(input.sessionKey),
-        sessionName: stringValue(input.sessionName),
-        durationMinutes: integerValue(input.durationMinutes),
-        priceLei: integerValue(input.priceLei),
-        appointmentDate: stringValue(input.date),
-        appointmentTime: stringValue(input.time),
-        sector: stringValue(input.sector),
-        address: stringValue(input.address),
-        people: integerValue(input.people),
-        message: stringValue(input.message),
-        language: stringValue(input.language),
-        status: stringValue("pending"),
-        source: stringValue("website"),
-        createdAt: timestampValue(new Date().toISOString()),
-      },
-    }),
+    headers,
+    body: JSON.stringify({ fields }),
   });
 
   if (!response.ok) {

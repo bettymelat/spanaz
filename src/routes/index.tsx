@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { StickyCta } from "@/components/site/StickyCta";
+import { FloatingChat } from "@/components/site/FloatingChat";
 import { Hero } from "@/components/sections/Hero";
 import { TrustBar, WhyUs, HowItWorks, Contact } from "@/components/sections/Sections";
 import { Offerings, PricingAndMembership } from "@/components/sections/Offerings";
@@ -19,13 +20,14 @@ const localBusinessSchema = {
   "@type": "HealthAndBeautyBusiness",
   name: "SPA NAZ",
   description:
-    "SPA NAZ oferă masaj profesional la domiciliu în București: relaxare, deep tissue, drenaj limfatic și aromaterapie.",
+    "SPA NAZ oferă masaje profesionale la domiciliu în București, inclusiv relaxare, deep tissue, drenaj limfatic, aromaterapie, anticelulitic, bambus, masaj facial și pentru picioare.",
   areaServed: SERVICE_AREAS.map((name) => ({ "@type": "AdministrativeArea", name })),
   address: { "@type": "PostalAddress", addressLocality: "București", addressCountry: "RO" },
   telephone: BUSINESS.phoneHref,
   email: BUSINESS.email,
   priceRange: "200-340 RON",
   availableLanguage: ["ro", "en"],
+  url: "https://spanaz.ro/",
 };
 
 export const Route = createFileRoute("/")({
@@ -44,10 +46,10 @@ export const Route = createFileRoute("/")({
           "Masaj profesional la domiciliu în București: relaxare, deep tissue, drenaj limfatic și aromaterapie. Rezervă online sau pe WhatsApp.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "/" },
+      { property: "og:url", content: "https://spanaz.ro/" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "/" }],
+    links: [{ rel: "canonical", href: "https://spanaz.ro/" }],
     scripts: [{ type: "application/ld+json", children: JSON.stringify(localBusinessSchema) }],
   }),
   component: Index,
@@ -91,6 +93,7 @@ function Index() {
         <Contact />
       </main>
       <Footer />
+      <FloatingChat />
       <StickyCta />
     </div>
   );
