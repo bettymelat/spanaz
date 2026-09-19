@@ -95,7 +95,11 @@ The booking form only displays a success state after Firestore acknowledges the 
 
 ## 5. Operations
 
-For the first MVP, staff can manage requests from the Firebase console. A private staff dashboard should be the next booking-system milestone so SPA NAZ can move bookings through `pending`, `confirmed`, `completed`, and `cancelled` states without opening Firestore directly.
+SPA NAZ now includes a private owner dashboard at `/admin/login`.
+
+The verified owner account can list bookings and move them through `pending`, `confirmed`, `completed`, and `cancelled` states, reschedule the confirmed time, add private internal notes, and contact customers by phone or WhatsApp.
+
+See `docs/ADMIN_BOOKINGS.md` for owner-account setup, dashboard security, and the full production acceptance test.
 
 ## 6. Recommended production hardening
 
