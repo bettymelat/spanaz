@@ -9,8 +9,15 @@ PROJECT_ID="${1:-${FIREBASE_PROJECT_ID:-}}"
 FIRESTORE_LOCATION="${2:-${FIRESTORE_LOCATION:-europe-central2}}"
 DISPLAY_NAME="${FIREBASE_DISPLAY_NAME:-SPA NAZ}"
 WEB_APP_NAME="${FIREBASE_WEB_APP_NAME:-SPA NAZ Web}"
-ENV_FILE="${ENV_FILE:-.env.local}"
+ENV_FILE_INPUT="${ENV_FILE:-.env.local}"
 ASSUME_YES="${ASSUME_YES:-0}"
+
+if [[ "$ENV_FILE_INPUT" = /* ]]; then
+  ENV_FILE="$ENV_FILE_INPUT"
+else
+  ENV_FILE="$ROOT_DIR/$ENV_FILE_INPUT"
+fi
+ENV_DIR="$(dirname "$ENV_FILE")"
 
 info() { printf '\033[1;34m[spanaz]\033[0m %s\n' "$*"; }
 ok() { printf '\033[1;32m[ok]\033[0m %s\n' "$*"; }
@@ -215,7 +222,8 @@ ok "Firestore security rules deployed."
 
 info "Writing SpaNaz Firebase variables to $ENV_FILE..."
 umask 077
-TMP_ENV="$(mktemp)"
+mkdir -p "$ENV_DIR"
+TMP_ENV="$(mktemp "${ENV_FILE}.tmp.XXXXXX")"
 trap 'rm -f "$TMP_ENV"' EXIT
 
 if [[ -f "$ENV_FILE" ]]; then
@@ -227,13 +235,24 @@ if [[ -s "$TMP_ENV" ]]; then
 fi
 printf 'VITE_FIREBASE_PROJECT_ID=%s\n' "$SDK_PROJECT_ID" >> "$TMP_ENV"
 printf 'VITE_FIREBASE_API_KEY=%s\n' "$API_KEY" >> "$TMP_ENV"
-mv "$TMP_ENV" "$ENV_FILE"
+
+mv -f "$TMP_ENV" "$ENV_FILE"
 trap - EXIT
 chmod 600 "$ENV_FILE" 2>/dev/null || true
+
+[[ -f "$ENV_FILE" ]] || die "Failed to create Firebase environment file: $ENV_FILE"
+grep -Fxq "VITE_FIREBASE_PROJECT_ID=$SDK_PROJECT_ID" "$ENV_FILE" || \
+  die "Firebase project ID was not written correctly to $ENV_FILE"
+grep -Fxq "VITE_FIREBASE_API_KEY=$API_KEY" "$ENV_FILE" || \
+  die "Firebase API key was not written correctly to $ENV_FILE"
+
+ok "Firebase environment file created and verified."
 
 printf '\n'
 ok "SpaNaz Firebase setup is complete."
 printf '\nProject: %s\nFirestore location: %s\nWeb App ID: %s\nEnvironment file: %s\n' \
   "$SDK_PROJECT_ID" "$FIRESTORE_LOCATION" "$APP_ID" "$ENV_FILE"
-printf '\nAdd the same two VITE_FIREBASE_* values from %s to the production/Lovable environment, then redeploy the site.\n' "$ENV_FILE"
-printf 'You can rerun this script safely; existing Firebase resources are reused.\n'
+printf '\nVerified variables:\n  VITE_FIREBASE_PROJECT_ID\n  VITE_FIREBASE_API_KEY\n'
+printf '\nThe file is hidden because its name starts with a dot. Verify it with:\n  ls -la %q\n' "$ENV_FILE"
+printf '\nBuild and deploy from the repository root so Vite loads this file:\n  npm run build\n  bash scripts/deploy-cloudflare.sh --yes\n'
+printf '\nYou can rerun this script safely; existing Firebase resources are reused.\n'
