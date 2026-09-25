@@ -1,7 +1,9 @@
+const BUCHAREST_TIME_ZONE = "Europe/Bucharest";
+
 /** Appointment wall times always belong to Bucharest, regardless of the visitor's device. */
 export function bucharestNow(now = new Date()) {
   const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Bucharest",
+    timeZone: BUCHAREST_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -28,10 +30,73 @@ export function timeMinutes(time: string) {
   return hour! * 60 + minute!;
 }
 
+function bucharestWallParts(instant: Date) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: BUCHAREST_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(instant);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? "";
+  return {
+    year: Number(part("year")),
+    month: Number(part("month")),
+    day: Number(part("day")),
+    hour: Number(part("hour")),
+    minute: Number(part("minute")),
+  };
+}
+
+/**
+ * Convert a Bucharest wall-clock appointment to a real UTC instant.
+ * Returns null for malformed values and for wall times that do not exist
+ * during a daylight-saving transition.
+ */
+export function bucharestAppointmentIso(date: string, time: string) {
+  if (!validDate(date) || timeMinutes(time) === null) return null;
+
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  const targetWallMs = Date.UTC(year!, month! - 1, day!, hour!, minute!);
+  let instantMs = targetWallMs;
+
+  // Resolve the timezone offset from Intl instead of assuming the visitor's
+  // device timezone or hard-coding EET/EEST.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const wall = bucharestWallParts(new Date(instantMs));
+    const representedWallMs = Date.UTC(
+      wall.year,
+      wall.month - 1,
+      wall.day,
+      wall.hour,
+      wall.minute,
+    );
+    const difference = representedWallMs - targetWallMs;
+    if (difference === 0) break;
+    instantMs -= difference;
+  }
+
+  const resolved = new Date(instantMs);
+  const wall = bucharestWallParts(resolved);
+  if (
+    wall.year !== year ||
+    wall.month !== month ||
+    wall.day !== day ||
+    wall.hour !== hour ||
+    wall.minute !== minute
+  ) {
+    return null;
+  }
+
+  return resolved.toISOString();
+}
+
 export function futureAppointment(date: string, time: string, now = new Date()) {
-  if (!validDate(date) || timeMinutes(time) === null) return false;
-  const current = bucharestNow(now);
-  return `${date}T${time}` > `${current.date}T${current.time}`;
+  const iso = bucharestAppointmentIso(date, time);
+  return iso !== null && new Date(iso).getTime() > now.getTime();
 }
 
 export function calendarLink(booking: {

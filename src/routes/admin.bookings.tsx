@@ -14,6 +14,7 @@ import {
   Phone,
   RefreshCw,
   Search,
+  Star,
   UserRound,
   XCircle,
 } from "lucide-react";
@@ -419,7 +420,14 @@ function AdminBookings() {
             <p className="eyebrow">SPA NAZ OWNER</p>
             <h1 className="mt-1 text-2xl">Bookings</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href="/admin/reviews"
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium"
+            >
+              <Star className="h-4 w-4" />
+              <span className="hidden sm:inline">Reviews</span>
+            </a>
             <button
               type="button"
               aria-label="Enable browser alerts"

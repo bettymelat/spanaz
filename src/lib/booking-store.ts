@@ -1,4 +1,5 @@
 import { getFirebasePublicConfig } from "@/lib/runtime-config";
+import { bucharestAppointmentIso } from "@/lib/appointment";
 import { getCurrentCustomerSession } from "@/lib/customer-auth";
 
 const BOOKING_PRIVACY_VERSION = "2026-09-19";
@@ -77,6 +78,10 @@ export async function createBooking(
 
   const customerSession = await getCurrentCustomerSession().catch(() => null);
   const now = new Date().toISOString();
+  const appointmentAt = bucharestAppointmentIso(input.date, input.time);
+  if (!appointmentAt || new Date(appointmentAt).getTime() <= Date.now()) {
+    throw new Error("Choose a future appointment in Bucharest time.");
+  }
 
   const fields: Record<string, unknown> = {
     reference: stringValue(reference),
@@ -93,6 +98,7 @@ export async function createBooking(
     priceLei: integerValue(input.priceLei),
     appointmentDate: stringValue(input.date),
     appointmentTime: stringValue(input.time),
+    appointmentAt: timestampValue(appointmentAt),
     sector: stringValue(input.sector),
     address: stringValue(input.address),
     people: integerValue(input.people),

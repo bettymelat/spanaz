@@ -4,7 +4,7 @@ import { useI18n } from "@/lib/i18n";
 import { BUSINESS } from "@/content/business";
 
 export function Footer() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
 
   const links = [
     { href: "/", label: t.nav.home },
@@ -14,6 +14,7 @@ export function Footer() {
     { href: "/#intrebari", label: t.nav.faq },
     { href: "/#rezervare", label: t.nav.book },
     { href: "/#contact", label: t.nav.contact },
+    { href: "/account", label: lang === "ro" ? "Lasă o recenzie" : "Leave a review" },
   ];
 
   const socials = [
