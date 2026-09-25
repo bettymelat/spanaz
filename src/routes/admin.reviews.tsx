@@ -188,8 +188,8 @@ function AdminReviews() {
                   Submitted {review.createdAt ? new Date(review.createdAt).toLocaleString("ro-RO") : "—"}
                 </p>
 
-                {review.status === "pending" && (
-                  <div className="mt-5 flex flex-wrap gap-2">
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {review.status !== "approved" && (
                     <button
                       type="button"
                       onClick={() => void moderate(review, "approved")}
@@ -201,8 +201,10 @@ function AdminReviews() {
                       ) : (
                         <CheckCircle2 className="h-4 w-4" />
                       )}
-                      Approve
+                      {review.status === "rejected" ? "Republish" : "Approve"}
                     </button>
+                  )}
+                  {review.status !== "rejected" && (
                     <button
                       type="button"
                       onClick={() => void moderate(review, "rejected")}
@@ -210,10 +212,10 @@ function AdminReviews() {
                       className="inline-flex min-h-11 items-center gap-2 rounded-full border border-destructive/30 px-5 text-sm font-semibold text-destructive disabled:opacity-50"
                     >
                       <XCircle className="h-4 w-4" />
-                      Reject
+                      {review.status === "approved" ? "Unpublish" : "Reject"}
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </article>
             ))}
           </div>
