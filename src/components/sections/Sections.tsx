@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Home,
   Lock,
@@ -18,7 +19,8 @@ import founderImage from "@/assets/founder-portrait.jpg";
 import oilsImage from "@/assets/oils-towels.jpg";
 import treatmentImage from "@/assets/oils-towels.jpg";
 import { useI18n } from "@/lib/i18n";
-import { BUSINESS, SERVICES, SERVICE_AREAS, TESTIMONIALS, whatsappLink } from "@/content/business";
+import { BUSINESS, SERVICES, SERVICE_AREAS, whatsappLink } from "@/content/business";
+import { listPublicReviews, type SpaReview } from "@/lib/review-store";
 
 function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
@@ -201,22 +203,65 @@ export function Pricing() {
 }
 
 export function Testimonials() {
-  const { t } = useI18n();
-  if (TESTIMONIALS.length === 0) return null;
+  const { t, lang } = useI18n();
+  const [reviews, setReviews] = useState<SpaReview[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void listPublicReviews()
+      .then((items) => {
+        if (active) setReviews(items);
+      })
+      .catch(() => {
+        if (active) setReviews([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (reviews.length === 0) return null;
+
   return (
-    <section className="bg-sand py-16 lg:py-24">
+    <section id="recenzii" className="scroll-mt-24 bg-sand py-16 lg:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <SectionHeading title={t.testimonials.title} subtitle={t.testimonials.subtitle} />
+        <SectionHeading
+          title={t.testimonials.title}
+          subtitle={
+            lang === "ro"
+              ? "Recenzii verificate de la clienți cu programări finalizate."
+              : "Verified reviews from customers with completed appointments."
+          }
+        />
         <div className="mt-12 grid gap-5 md:grid-cols-3">
-          {TESTIMONIALS.map((item, i) => (
-            <figure key={i} className="surface-card p-6">
-              <div className="flex gap-0.5 text-gold" aria-label={`${item.stars}/5`}>
-                {Array.from({ length: item.stars }).map((_, s) => (
-                  <Star key={s} className="h-4 w-4 fill-current" />
+          {reviews.slice(0, 6).map((review) => (
+            <figure key={review.id} className="surface-card p-6">
+              <div
+                className="flex gap-0.5 text-gold"
+                aria-label={
+                  lang === "ro"
+                    ? `${review.rating} din 5 stele`
+                    : `${review.rating} out of 5 stars`
+                }
+              >
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <Star
+                    key={index}
+                    className={
+                      "h-4 w-4 " + (index < review.rating ? "fill-current" : "opacity-25")
+                    }
+                  />
                 ))}
               </div>
-              <blockquote className="mt-4 font-display text-lg leading-snug">{item.quote}</blockquote>
-              <figcaption className="mt-4 text-sm text-muted-foreground">{item.author}</figcaption>
+              <blockquote className="mt-4 font-display text-lg leading-snug">
+                “{review.comment}”
+              </blockquote>
+              <figcaption className="mt-5 border-t border-border pt-4 text-sm">
+                <span className="font-medium text-foreground">{review.author}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  {review.serviceName}
+                </span>
+              </figcaption>
             </figure>
           ))}
         </div>
