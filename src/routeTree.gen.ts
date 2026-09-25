@@ -15,6 +15,7 @@ import { Route as CancellationRouteImport } from './routes/cancellation'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
+import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 
 const IndexRoute = IndexRouteImport.update({
@@ -47,6 +48,11 @@ const AdminBookingsRoute = AdminBookingsRouteImport.update({
   path: '/admin/bookings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminReviewsRoute = AdminReviewsRouteImport.update({
+  id: '/admin/reviews',
+  path: '/admin/reviews',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin/login',
   path: '/admin/login',
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/reviews': typeof AdminReviewsRoute
   '/admin/login': typeof AdminLoginRoute
 }
 export interface FileRoutesByTo {
@@ -90,6 +97,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/admin/bookings'
+    | '/admin/reviews'
     | '/admin/login'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -99,6 +107,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/admin/bookings'
+    | '/admin/reviews'
     | '/admin/login'
   id:
     | '__root__'
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/admin/bookings'
+    | '/admin/reviews'
     | '/admin/login'
   fileRoutesById: FileRoutesById
 }
@@ -118,6 +128,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   AdminBookingsRoute: typeof AdminBookingsRoute
+  AdminReviewsRoute: typeof AdminReviewsRoute
   AdminLoginRoute: typeof AdminLoginRoute
 }
 
@@ -165,6 +176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBookingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/reviews': {
+      id: '/admin/reviews'
+      path: '/admin/reviews'
+      fullPath: '/admin/reviews'
+      preLoaderRoute: typeof AdminReviewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/login': {
       id: '/admin/login'
       path: '/admin/login'
@@ -182,6 +200,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   AdminBookingsRoute: AdminBookingsRoute,
+  AdminReviewsRoute: AdminReviewsRoute,
   AdminLoginRoute: AdminLoginRoute,
 }
 export const routeTree = rootRouteImport
