@@ -4,7 +4,7 @@ import { CalendarDays, Loader2, RefreshCw, LogOut, MessageCircle } from "lucide-
 import type { User } from "firebase/auth";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
-import { ReviewForm } from "@/components/account/ReviewForm";
+import { PendingReviewPrompt } from "@/components/account/PendingReviewPrompt";
 import { BUSINESS, whatsappLink } from "@/content/business";
 import { useI18n } from "@/lib/i18n";
 import { calendarLink, bucharestNow } from "@/lib/appointment";
@@ -251,6 +251,7 @@ function AccountPage() {
                 </p>
               )}
             </section>
+            <PendingReviewPrompt bookings={bookings} lang={lang} />
             <div
               className="my-6 flex flex-wrap gap-2"
               role="group"
@@ -392,9 +393,6 @@ function AccountPage() {
                         </a>
                       )}
                     </div>
-                    {booking.status === "completed" && (
-                      <ReviewForm booking={booking} lang={lang} />
-                    )}
                     {active && (
                       <p className="mt-3 text-xs text-muted-foreground">
                         {text(
