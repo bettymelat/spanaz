@@ -76,6 +76,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/reviews': typeof AdminReviewsRoute
   '/admin/login': typeof AdminLoginRoute
 }
 export interface FileRoutesById {
@@ -86,6 +87,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/admin/bookings': typeof AdminBookingsRoute
+  '/admin/reviews': typeof AdminReviewsRoute
   '/admin/login': typeof AdminLoginRoute
 }
 export interface FileRouteTypes {
