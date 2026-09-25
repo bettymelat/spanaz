@@ -201,6 +201,63 @@ service cloud.firestore {
         );
     }
 
+    // Reviews are tied to completed, account-owned bookings. Public visitors
+    // can only read owner-approved reviews; pending/rejected reviews stay private.
+    match /reviews/{bookingId} {
+      allow read: if
+        resource.data.status == 'approved' ||
+        isOwnerAdmin() ||
+        (
+          request.auth != null &&
+          exists(/databases/$(database)/documents/bookings/$(bookingId)) &&
+          get(/databases/$(database)/documents/bookings/$(bookingId)).data.customerUid == request.auth.uid
+        );
+
+      allow create: if
+        request.auth != null &&
+        exists(/databases/$(database)/documents/bookings/$(bookingId)) &&
+        get(/databases/$(database)/documents/bookings/$(bookingId)).data.customerUid == request.auth.uid &&
+        get(/databases/$(database)/documents/bookings/$(bookingId)).data.status == 'completed' &&
+        request.resource.data.keys().hasOnly([
+          'author',
+          'rating',
+          'comment',
+          'serviceName',
+          'language',
+          'status',
+          'createdAt'
+        ]) &&
+        request.resource.data.author is string &&
+        request.resource.data.author.size() >= 2 &&
+        request.resource.data.author.size() <= 60 &&
+        request.resource.data.rating is int &&
+        request.resource.data.rating >= 1 &&
+        request.resource.data.rating <= 5 &&
+        request.resource.data.comment is string &&
+        request.resource.data.comment.size() >= 10 &&
+        request.resource.data.comment.size() <= 1200 &&
+        request.resource.data.serviceName ==
+          get(/databases/$(database)/documents/bookings/$(bookingId)).data.serviceName &&
+        request.resource.data.language in ['ro', 'en'] &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.createdAt is timestamp &&
+        request.resource.data.createdAt >= request.time - duration.value(5, 'm') &&
+        request.resource.data.createdAt <= request.time + duration.value(5, 'm');
+
+      allow update: if
+        isOwnerAdmin() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'moderatedAt',
+          'moderatedBy'
+        ]) &&
+        request.resource.data.status in ['approved', 'rejected'] &&
+        request.resource.data.moderatedAt is timestamp &&
+        request.resource.data.moderatedBy == request.auth.token.email;
+
+      allow delete: if isOwnerAdmin();
+    }
+
     // Per-day revision document used to serialize owner confirmations and
     // prevent two concurrent updates from confirming overlapping appointments.
     match /scheduleLocks/{date} {
