@@ -1,3 +1,4 @@
+import { bucharestNow, csvCell, timeMinutes, calendarLink } from "@/lib/appointment";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -16,14 +17,9 @@ import {
   UserRound,
   XCircle,
 } from "lucide-react";
-import {
-  clearAdminSession,
-  getValidAdminSession,
-  type AdminSession,
-} from "@/lib/admin-auth";
+import { clearAdminSession, getValidAdminSession, type AdminSession } from "@/lib/admin-auth";
 import {
   listAdminBookings,
-  seedConfirmedAvailability,
   updateAdminBooking,
   type AdminBooking,
   type BookingStatus,
@@ -31,10 +27,7 @@ import {
 
 export const Route = createFileRoute("/admin/bookings")({
   head: () => ({
-    meta: [
-      { title: "SPA NAZ Bookings" },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
+    meta: [{ title: "SPA NAZ Bookings" }, { name: "robots", content: "noindex, nofollow" }],
   }),
   component: AdminBookings,
 });
@@ -93,24 +86,15 @@ function customerWhatsAppLink(booking: AdminBooking) {
   return "https://wa.me/" + phone + "?text=" + encodeURIComponent(message);
 }
 
-function minutesFromTime(time: string) {
-  const parts = time.split(":");
-  if (parts.length !== 2) return null;
-  const hours = Number(parts[0] ?? Number.NaN);
-  const minutes = Number(parts[1] ?? Number.NaN);
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
-  return hours * 60 + minutes;
-}
-
 function hasScheduleConflict(
   bookings: AdminBooking[],
   current: AdminBooking,
   date: string,
   time: string,
 ) {
-  const start = minutesFromTime(time);
+  const start = timeMinutes(time);
   if (!date || start === null) return null;
-  const end = start + Math.max(30, current.durationMinutes) + 30;
+  const end = start + Math.max(30, current.durationMinutes) * Math.max(1, current.people) + 30;
 
   return (
     bookings.find((booking) => {
@@ -118,9 +102,10 @@ function hasScheduleConflict(
       const otherDate = booking.confirmedDate || booking.appointmentDate;
       const otherTime = booking.confirmedTime || booking.appointmentTime;
       if (otherDate !== date) return false;
-      const otherStart = minutesFromTime(otherTime);
+      const otherStart = timeMinutes(otherTime);
       if (otherStart === null) return false;
-      const otherEnd = otherStart + Math.max(30, booking.durationMinutes) + 30;
+      const otherEnd =
+        otherStart + Math.max(30, booking.durationMinutes) * Math.max(1, booking.people) + 30;
       return start < otherEnd && otherStart < end;
     }) ?? null
   );
@@ -134,15 +119,21 @@ function AdminBookings() {
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<BookingStatus | "all">("pending");
   const [query, setQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+  const [sort, setSort] = useState("newest");
+  const [lastRefresh, setLastRefresh] = useState("");
+  const loadingRef = useRef(false);
   const [savingId, setSavingId] = useState("");
   const [alertsEnabled, setAlertsEnabled] = useState(false);
   const knownBookingIds = useRef<Set<string> | null>(null);
-  const availabilitySeeded = useRef(false);
+
   const [scheduleDrafts, setScheduleDrafts] = useState<
     Record<string, { date: string; time: string; note: string }>
   >({});
 
   const load = async (showRefresh = false) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     if (showRefresh) setRefreshing(true);
     else setLoading(true);
     setError("");
@@ -156,17 +147,8 @@ function AdminBookings() {
       setSession(validSession);
       const rows = await listAdminBookings(validSession);
 
-      if (!availabilitySeeded.current) {
-        await seedConfirmedAvailability(validSession, rows);
-        availabilitySeeded.current = true;
-      }
-
       const known = knownBookingIds.current;
-      if (
-        known &&
-        typeof Notification !== "undefined" &&
-        Notification.permission === "granted"
-      ) {
+      if (known && typeof Notification !== "undefined" && Notification.permission === "granted") {
         const newPending = rows.filter(
           (booking) => booking.status === "pending" && !known.has(booking.id),
         );
@@ -187,6 +169,7 @@ function AdminBookings() {
       }
       knownBookingIds.current = new Set(rows.map((booking) => booking.id));
       setBookings(rows);
+      setLastRefresh(new Date().toLocaleTimeString("ro-RO", { timeZone: "Europe/Bucharest" }));
       setScheduleDrafts((current) => {
         const next = { ...current };
         rows.forEach((booking) => {
@@ -203,6 +186,7 @@ function AdminBookings() {
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Could not load bookings.");
     } finally {
+      loadingRef.current = false;
       setLoading(false);
       setRefreshing(false);
     }
@@ -233,29 +217,37 @@ function AdminBookings() {
 
   const visibleBookings = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return bookings.filter((booking) => {
-      if (filter !== "all" && booking.status !== filter) return false;
-      if (!normalized) return true;
-      return [
-        booking.reference,
-        booking.name,
-        booking.phone,
-        booking.whatsapp,
-        booking.serviceName,
-        booking.address,
-        booking.sector,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalized);
-    });
-  }, [bookings, filter, query]);
+    return bookings
+      .filter((booking) => {
+        if (dateFilter && (booking.confirmedDate || booking.appointmentDate) !== dateFilter)
+          return false;
+        if (filter !== "all" && booking.status !== filter) return false;
+        if (!normalized) return true;
+        return [
+          booking.reference,
+          booking.name,
+          booking.phone,
+          booking.whatsapp,
+          booking.serviceName,
+          booking.address,
+          booking.sector,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalized);
+      })
+      .sort((a, b) =>
+        sort === "appointment"
+          ? (
+              (a.confirmedDate || a.appointmentDate) + (a.confirmedTime || a.appointmentTime)
+            ).localeCompare(
+              (b.confirmedDate || b.appointmentDate) + (b.confirmedTime || b.appointmentTime),
+            )
+          : b.createdAt.localeCompare(a.createdAt),
+      );
+  }, [bookings, filter, query, dateFilter, sort]);
 
-  const updateDraft = (
-    bookingId: string,
-    key: "date" | "time" | "note",
-    value: string,
-  ) => {
+  const updateDraft = (bookingId: string, key: "date" | "time" | "note", value: string) => {
     setScheduleDrafts((current) => ({
       ...current,
       [bookingId]: {
@@ -272,6 +264,7 @@ function AdminBookings() {
     status?: BookingStatus,
     includeSchedule = false,
   ) => {
+    if (savingId) return;
     const validSession = await getValidAdminSession();
     if (!validSession) {
       window.location.replace("/admin/login");
@@ -285,20 +278,18 @@ function AdminBookings() {
       note: booking.internalNote,
     };
 
-    if (status === "confirmed") {
+    if (status === "confirmed" || (includeSchedule && booking.status === "confirmed")) {
       if (!draft.date || !draft.time) {
         setError("Choose a confirmed date and time before confirming the booking.");
         return;
       }
       const conflict = hasScheduleConflict(bookings, booking, draft.date, draft.time);
-      if (
-        conflict &&
-        !window.confirm(
-          "This overlaps with confirmed booking " +
+      if (conflict) {
+        setError(
+          "This overlaps booking " +
             conflict.reference +
-            ". Confirm this booking anyway?",
-        )
-      ) {
+            ". Choose another time (including 30 minutes for travel).",
+        );
         return;
       }
     }
@@ -315,6 +306,11 @@ function AdminBookings() {
               internalNote: draft.note,
             }
           : {}),
+      });
+      setScheduleDrafts((current) => {
+        const next = { ...current };
+        delete next[booking.id];
+        return next;
       });
       await load(true);
     } catch (updateError) {
@@ -335,15 +331,14 @@ function AdminBookings() {
     const granted = permission === "granted";
     setAlertsEnabled(granted);
     if (!granted) {
-      setError("Browser alerts were not enabled. You can still rely on automatic dashboard refresh.");
+      setError(
+        "Browser alerts were not enabled. You can still rely on automatic dashboard refresh.",
+      );
     }
   };
 
   const exportCsv = () => {
-    const escape = (value: string | number) => {
-      const text = String(value ?? "");
-      return '"' + text.replaceAll('"', '""') + '"';
-    };
+    const escape = csvCell;
     const header = [
       "Reference",
       "Status",
@@ -353,7 +348,7 @@ function AdminBookings() {
       "Service",
       "Session",
       "Duration minutes",
-      "Price lei",
+      "Total lei",
       "Requested date",
       "Requested time",
       "Confirmed date",
@@ -367,7 +362,7 @@ function AdminBookings() {
       "Updated at",
       "Updated by",
     ];
-    const rows = bookings.map((booking) => [
+    const rows = visibleBookings.map((booking) => [
       booking.reference,
       booking.status,
       booking.name,
@@ -376,7 +371,7 @@ function AdminBookings() {
       booking.serviceName,
       booking.sessionName,
       booking.durationMinutes,
-      booking.priceLei,
+      booking.priceLei * Math.max(1, booking.people),
       booking.appointmentDate,
       booking.appointmentTime,
       booking.confirmedDate,
@@ -391,7 +386,7 @@ function AdminBookings() {
       booking.updatedBy,
     ]);
     const csv = [header, ...rows].map((row) => row.map(escape).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -419,7 +414,7 @@ function AdminBookings() {
   return (
     <main className="min-h-screen bg-sand pb-16">
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <div>
             <p className="eyebrow">SPA NAZ OWNER</p>
             <h1 className="mt-1 text-2xl">Bookings</h1>
@@ -427,15 +422,23 @@ function AdminBookings() {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              aria-label="Enable browser alerts"
               onClick={() => void enableAlerts()}
               className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium"
-              title={alertsEnabled ? "Browser booking alerts are enabled" : "Enable browser booking alerts"}
+              title={
+                alertsEnabled
+                  ? "Browser booking alerts are enabled"
+                  : "Enable browser booking alerts"
+              }
             >
               <Bell className="h-4 w-4" />
-              <span className="hidden xl:inline">{alertsEnabled ? "Alerts on" : "Enable alerts"}</span>
+              <span className="hidden xl:inline">
+                {alertsEnabled ? "Alerts on" : "Enable alerts"}
+              </span>
             </button>
             <button
               type="button"
+              aria-label="Export filtered bookings as CSV"
               onClick={exportCsv}
               disabled={bookings.length === 0}
               className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium disabled:opacity-50"
@@ -445,6 +448,7 @@ function AdminBookings() {
             </button>
             <button
               type="button"
+              aria-label="Refresh bookings"
               onClick={() => void load(true)}
               disabled={refreshing}
               className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium"
@@ -454,6 +458,7 @@ function AdminBookings() {
             </button>
             <button
               type="button"
+              aria-label="Sign out"
               onClick={logout}
               className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium"
             >
@@ -471,23 +476,53 @@ function AdminBookings() {
           </div>
         )}
 
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {(["pending", "confirmed", "completed", "cancelled"] as BookingStatus[]).map(
-            (status) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => setFilter(status)}
-                className={
-                  "surface-card p-5 text-left transition ring-offset-2 " +
-                  (filter === status ? "ring-2 ring-primary" : "")
-                }
-              >
-                <p className="text-sm text-muted-foreground">{statusLabels[status]}</p>
-                <p className="mt-1 font-display text-4xl">{counts[status]}</p>
-              </button>
-            ),
-          )}
+        <section className="mb-6 grid gap-3 sm:grid-cols-3" aria-label="Business overview">
+          <div className="surface-card p-5">
+            <p className="text-sm text-muted-foreground">Today's appointments</p>
+            <p className="mt-1 font-display text-3xl">
+              {
+                bookings.filter(
+                  (b) =>
+                    b.status === "confirmed" &&
+                    (b.confirmedDate || b.appointmentDate) === bucharestNow().date,
+                ).length
+              }
+            </p>
+          </div>
+          <div className="surface-card p-5">
+            <p className="text-sm text-muted-foreground">Completed appointment value</p>
+            <p className="mt-1 font-display text-3xl">
+              {bookings
+                .filter((b) => b.status === "completed")
+                .reduce((sum, b) => sum + b.priceLei * Math.max(1, b.people), 0)
+                .toLocaleString("ro-RO")}{" "}
+              lei
+            </p>
+            <p className="text-xs text-muted-foreground">Listed prices; not a payment report</p>
+          </div>
+          <div className="surface-card p-5">
+            <p className="text-sm text-muted-foreground">Calendar timezone</p>
+            <p className="mt-1 font-display text-2xl">Europe/Bucharest</p>
+            <p className="text-xs text-muted-foreground" role="status">
+              Last refresh: {lastRefresh || "—"}
+            </p>
+          </div>
+        </section>
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {(["pending", "confirmed", "completed", "cancelled"] as BookingStatus[]).map((status) => (
+            <button
+              key={status}
+              type="button"
+              onClick={() => setFilter(status)}
+              className={
+                "surface-card p-5 text-left transition ring-offset-2 " +
+                (filter === status ? "ring-2 ring-primary" : "")
+              }
+            >
+              <p className="text-sm text-muted-foreground">{statusLabels[status]}</p>
+              <p className="mt-1 font-display text-4xl">{counts[status]}</p>
+            </button>
+          ))}
         </section>
 
         <section className="mt-6 flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center">
@@ -496,6 +531,7 @@ function AdminBookings() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              aria-label="Search bookings"
               placeholder="Search name, phone, reference, service or address"
               className="w-full rounded-xl border border-input bg-background py-3 pl-11 pr-4 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
             />
@@ -514,6 +550,50 @@ function AdminBookings() {
           </button>
         </section>
 
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <label className="text-sm">
+            Appointment date
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(event) => setDateFilter(event.target.value)}
+              className="mt-1 block min-h-11 rounded-xl border bg-card px-3"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              setDateFilter(bucharestNow().date);
+              setFilter("all");
+              setSort("appointment");
+            }}
+            className="min-h-11 rounded-full border bg-card px-5 text-sm"
+          >
+            Today
+          </button>
+          <label className="text-sm">
+            Sort by
+            <select
+              value={sort}
+              onChange={(event) => setSort(event.target.value)}
+              className="mt-1 block min-h-11 rounded-xl border bg-card px-3"
+            >
+              <option value="newest">Newest requests</option>
+              <option value="appointment">Appointment time</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              setQuery("");
+              setDateFilter("");
+              setFilter("all");
+            }}
+            className="min-h-11 px-3 text-sm underline"
+          >
+            Clear filters
+          </button>
+        </div>
         <p className="mt-5 text-sm text-muted-foreground">
           Showing {visibleBookings.length} of {bookings.length} bookings
         </p>
@@ -535,7 +615,7 @@ function AdminBookings() {
               time: booking.confirmedTime || booking.appointmentTime,
               note: booking.internalNote,
             };
-            const saving = savingId === booking.id;
+            const saving = Boolean(savingId);
 
             return (
               <article key={booking.id} className="surface-card overflow-hidden">
@@ -559,7 +639,10 @@ function AdminBookings() {
                         </p>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Requested {booking.createdAt ? new Date(booking.createdAt).toLocaleString("ro-RO") : "—"}
+                        Requested{" "}
+                        {booking.createdAt
+                          ? new Date(booking.createdAt).toLocaleString("ro-RO")
+                          : "—"}
                       </p>
                     </div>
 
@@ -578,7 +661,9 @@ function AdminBookings() {
                         </p>
                         <p className="mt-1 font-medium">{booking.serviceName}</p>
                         <p className="mt-1 text-muted-foreground">
-                          {booking.sessionName} · {booking.durationMinutes} min · {booking.priceLei} lei
+                          {booking.sessionName} · {booking.durationMinutes} min ×{" "}
+                          {Math.max(1, booking.people)} ·{" "}
+                          {booking.priceLei * Math.max(1, booking.people)} lei
                         </p>
                       </div>
                       <div className="rounded-xl border border-border bg-background p-4">
@@ -599,7 +684,26 @@ function AdminBookings() {
                       </div>
                     </div>
 
+                    {booking.status === "confirmed" && (
+                      <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm font-medium text-emerald-800">
+                        Confirmed:{" "}
+                        {dateTimeLabel(
+                          booking.confirmedDate || booking.appointmentDate,
+                          booking.confirmedTime || booking.appointmentTime,
+                        )}
+                      </p>
+                    )}
                     <div className="mt-4 flex flex-wrap gap-2">
+                      {booking.status === "confirmed" && (
+                        <a
+                          href={calendarLink(booking)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-full border bg-background px-4 py-2.5 text-sm font-medium"
+                        >
+                          Add to calendar
+                        </a>
+                      )}
                       <a
                         href={"tel:" + booking.phone}
                         className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2.5 text-sm font-medium"
@@ -643,6 +747,7 @@ function AdminBookings() {
                           Confirmed date
                         </label>
                         <input
+                          aria-label={"Confirmed date for " + booking.reference}
                           type="date"
                           value={draft.date}
                           onChange={(event) => updateDraft(booking.id, "date", event.target.value)}
@@ -654,6 +759,7 @@ function AdminBookings() {
                           Confirmed time
                         </label>
                         <input
+                          aria-label={"Confirmed time for " + booking.reference}
                           type="time"
                           value={draft.time}
                           onChange={(event) => updateDraft(booking.id, "time", event.target.value)}
@@ -667,6 +773,7 @@ function AdminBookings() {
                         Internal note
                       </label>
                       <textarea
+                        aria-label={"Internal note for " + booking.reference}
                         rows={4}
                         maxLength={1500}
                         value={draft.note}

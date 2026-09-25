@@ -1,9 +1,12 @@
+import { getFirebasePublicConfig } from "@/lib/runtime-config";
 import { getCurrentCustomerSession } from "@/lib/customer-auth";
 
 export type CustomerBookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
 export type CustomerBooking = {
   id: string;
+  version: string;
+  people: number;
   reference: string;
   serviceName: string;
   sessionName: string;
@@ -27,15 +30,9 @@ type FirestoreValue = {
 
 type FirestoreDocument = {
   name?: string;
+  updateTime?: string;
   fields?: Record<string, FirestoreValue>;
 };
-
-function projectConfig() {
-  const projectId = import.meta.env["VITE_FIREBASE_PROJECT_ID"]?.trim();
-  const apiKey = import.meta.env["VITE_FIREBASE_API_KEY"]?.trim();
-  if (!projectId || !apiKey) throw new Error("Firebase booking storage is not configured.");
-  return { projectId, apiKey };
-}
 
 function stringField(fields: Record<string, FirestoreValue>, key: string) {
   return fields[key]?.stringValue ?? "";
@@ -54,6 +51,8 @@ function parseBooking(document: FirestoreDocument): CustomerBooking {
   const id = document.name?.split("/").pop() ?? "";
   return {
     id,
+    version: document.updateTime ?? "",
+    people: Math.max(1, intField(fields, "people")),
     reference: stringField(fields, "reference") || "SN-" + id.slice(0, 8).toUpperCase(),
     serviceName: stringField(fields, "serviceName"),
     sessionName: stringField(fields, "sessionName"),
@@ -87,7 +86,7 @@ export async function listCustomerBookings(): Promise<CustomerBooking[]> {
   const session = await getCurrentCustomerSession();
   if (!session) throw new Error("Sign in to view your bookings.");
 
-  const { projectId, apiKey } = projectConfig();
+  const { projectId, apiKey } = await getFirebasePublicConfig();
   const endpoint =
     "https://firestore.googleapis.com/v1/projects/" +
     encodeURIComponent(projectId) +
@@ -110,7 +109,6 @@ export async function listCustomerBookings(): Promise<CustomerBooking[]> {
             value: { stringValue: session.uid },
           },
         },
-        limit: 100,
       },
     }),
   });
@@ -128,7 +126,7 @@ export async function cancelCustomerBooking(booking: CustomerBooking): Promise<v
   const session = await getCurrentCustomerSession();
   if (!session) throw new Error("Sign in to manage this booking.");
 
-  const { projectId, apiKey } = projectConfig();
+  const { projectId, apiKey } = await getFirebasePublicConfig();
   const now = new Date().toISOString();
 
   const writes: Array<Record<string, unknown>> = [
@@ -142,7 +140,7 @@ export async function cancelCustomerBooking(booking: CustomerBooking): Promise<v
         },
       },
       updateMask: { fieldPaths: ["status", "updatedAt", "updatedBy"] },
-      currentDocument: { exists: true },
+      currentDocument: booking.version ? { updateTime: booking.version } : { exists: true },
     },
   ];
 
@@ -150,10 +148,7 @@ export async function cancelCustomerBooking(booking: CustomerBooking): Promise<v
     const date = booking.confirmedDate || booking.appointmentDate;
     if (date) {
       writes.push({
-        delete: documentName(
-          projectId,
-          "availability/" + date + "/slots/" + booking.id,
-        ),
+        delete: documentName(projectId, "availability/" + date + "/slots/" + booking.id),
       });
     }
   }

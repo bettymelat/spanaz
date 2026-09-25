@@ -14,19 +14,39 @@ import { SpaFaq } from "@/components/sections/SpaFaq";
 import { BookingForm } from "@/components/sections/BookingForm";
 import { CustomerAuth } from "@/components/site/CustomerAuth";
 import { useI18n } from "@/lib/i18n";
-import { BUSINESS, SERVICE_AREAS } from "@/content/business";
+import { BUSINESS, SERVICE_AREAS, SESSION_OPTIONS, SERVICES } from "@/content/business";
 
 const localBusinessSchema = {
   "@context": "https://schema.org",
   "@type": "HealthAndBeautyBusiness",
+  "@id": "https://spanaz.ro/#business",
   name: "SPA NAZ",
+  sameAs: [BUSINESS.social.instagram, BUSINESS.social.facebook],
+  image: "https://spanaz.ro/social-preview.jpg",
   description:
     "SPA NAZ oferă masaje profesionale la domiciliu în București, inclusiv relaxare, deep tissue, drenaj limfatic, aromaterapie, anticelulitic, bambus, masaj facial și pentru picioare.",
   areaServed: SERVICE_AREAS.map((name) => ({ "@type": "AdministrativeArea", name })),
   address: { "@type": "PostalAddress", addressLocality: "București", addressCountry: "RO" },
   telephone: BUSINESS.phoneHref,
   email: BUSINESS.email,
-  priceRange: "200-340 RON",
+  priceRange: `${SESSION_OPTIONS[0].priceLei}-${SESSION_OPTIONS[2].priceLei} RON`,
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "Masaj la domiciliu București",
+    itemListElement: SERVICES.map((service) => ({
+      "@type": "Service",
+      name: service.name.ro,
+      description: service.description.ro,
+      provider: { "@id": "https://spanaz.ro/#business" },
+      offers: SESSION_OPTIONS.map((session) => ({
+        "@type": "Offer",
+        name: `${session.name} · ${session.minutes} min`,
+        price: session.priceLei,
+        priceCurrency: "RON",
+        url: "https://spanaz.ro/#preturi",
+      })),
+    })),
+  },
   availableLanguage: ["ro", "en"],
   url: "https://spanaz.ro/",
 };
@@ -46,6 +66,10 @@ export const Route = createFileRoute("/")({
         content:
           "Masaj profesional la domiciliu în București: relaxare, deep tissue, drenaj limfatic și aromaterapie. Rezervă online sau pe WhatsApp.",
       },
+      { property: "og:image", content: "https://spanaz.ro/social-preview.jpg" },
+      { property: "og:image:alt", content: "SPA NAZ — experiență spa privată la domiciliu" },
+      { property: "og:locale", content: "ro_RO" },
+      { name: "twitter:image", content: "https://spanaz.ro/social-preview.jpg" },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://spanaz.ro/" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -126,7 +150,7 @@ function Index() {
   return (
     <div className="min-h-screen pb-20 lg:pb-0">
       <Header />
-      <main>
+      <main id="main-content">
         <Hero />
         <TrustBar />
         <HomeSpaExperience />

@@ -124,7 +124,9 @@
     letter-spacing: -0.008em;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    font-feature-settings: "kern" 1, "liga" 1;
+    font-feature-settings:
+      "kern" 1,
+      "liga" 1;
   }
 
   ::selection {
@@ -225,4 +227,41 @@
   html {
     scroll-behavior: auto;
   }
+}
+
+/* Keep native mobile controls inside narrow cards and avoid iOS focus zoom. */
+input,
+select,
+textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 1rem;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.skip-link:focus {
+  top: 1rem;
+}
+.membership-card[data-tier="bronze"] {
+  border-top: 4px solid oklch(0.62 0.08 55);
+}
+.membership-card[data-tier="silver"] {
+  border-top: 4px solid oklch(0.8 0.015 250);
+}
+.membership-card[data-tier="gold"] {
+  border-top: 4px solid var(--gold);
 }

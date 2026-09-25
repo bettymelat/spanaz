@@ -1,5 +1,7 @@
+import { useState } from "react";
+import { selectBooking } from "@/lib/booking-selection";
 import { ArrowUpRight, Check, Leaf, Star } from "lucide-react";
-import { MEMBERSHIPS, SERVICES, SESSION_OPTIONS } from "@/content/business";
+import { MEMBERSHIPS, SERVICES, SESSION_OPTIONS, whatsappLink } from "@/content/business";
 import { useI18n } from "@/lib/i18n";
 
 function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
@@ -9,9 +11,7 @@ function SectionHeading({ title, subtitle }: { title: string; subtitle?: string 
       <h2 className="mt-3 text-4xl leading-tight sm:text-5xl">{title}</h2>
       <div className="gold-rule mx-auto mt-6 w-20 bg-gold" />
       {subtitle && (
-        <p className="mt-5 text-sm leading-7 text-muted-foreground sm:text-base">
-          {subtitle}
-        </p>
+        <p className="mt-5 text-sm leading-7 text-muted-foreground sm:text-base">{subtitle}</p>
       )}
     </div>
   );
@@ -55,9 +55,7 @@ export function Offerings() {
                 <Leaf className="h-4.5 w-4.5" />
               </span>
 
-              <h3 className="mt-7 max-w-[13ch] text-3xl leading-none">
-                {service.name[lang]}
-              </h3>
+              <h3 className="mt-7 max-w-[13ch] text-3xl leading-none">{service.name[lang]}</h3>
               <p className="mt-4 flex-1 text-sm leading-6 text-muted-foreground">
                 {service.description[lang]}
               </p>
@@ -68,6 +66,7 @@ export function Offerings() {
                 </span>
                 <a
                   href="#rezervare"
+                  onClick={() => selectBooking({ service: service.key })}
                   aria-label={copy.book + ": " + service.name[lang]}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground"
                 >
@@ -83,18 +82,17 @@ export function Offerings() {
 }
 
 export function PricingAndMembership() {
+  const [minutes, setMinutes] = useState<60 | 90 | 120>(60);
   const { lang } = useI18n();
   const copy =
     lang === "ro"
       ? {
           title: "Experiența de Relaxare",
-          subtitle:
-            "Trei durate simple. Alegi cât timp vrei să te oprești din ritmul zilei.",
+          subtitle: "Trei durate simple. Alegi cât timp vrei să te oprești din ritmul zilei.",
           popular: "Recomandat",
           session: "experiență",
           membershipTitle: "SPA NAZ Membership",
-          membershipSubtitle:
-            "Pentru clienții care vor ca relaxarea să devină parte din rutină.",
+          membershipSubtitle: "Pentru clienții care vor ca relaxarea să devină parte din rutină.",
           chooseDuration: "Alege durata",
           sessions: "experiențe",
           save: "Economie",
@@ -112,8 +110,7 @@ export function PricingAndMembership() {
           popular: "Recommended",
           session: "experience",
           membershipTitle: "SPA NAZ Membership",
-          membershipSubtitle:
-            "For clients who want relaxation to become part of their routine.",
+          membershipSubtitle: "For clients who want relaxation to become part of their routine.",
           chooseDuration: "Choose duration",
           sessions: "experiences",
           save: "Save",
@@ -127,7 +124,6 @@ export function PricingAndMembership() {
 
   const standardPrice = (minutes: number) =>
     SESSION_OPTIONS.find((item) => item.minutes === minutes)?.priceLei ?? 0;
-  const membershipGroups = [5, 10] as const;
 
   return (
     <section id="preturi" className="scroll-mt-24 bg-sand/70 py-20 lg:py-28">
@@ -162,6 +158,7 @@ export function PricingAndMembership() {
               </p>
               <a
                 href="#rezervare"
+                onClick={() => selectBooking({ session: session.key })}
                 className={
                   "mt-8 inline-flex items-center justify-center rounded-full px-5 py-3.5 text-sm font-semibold transition " +
                   (session.featured
@@ -184,61 +181,112 @@ export function PricingAndMembership() {
             </p>
           </div>
 
-          <div className="mx-auto mt-9 grid max-w-4xl gap-5 md:grid-cols-2">
-            {membershipGroups.map((sessionCount) => {
-              const options = MEMBERSHIPS.filter(
-                (membership) => membership.sessions === sessionCount,
-              );
+          <div
+            className="mx-auto mt-7 flex w-fit flex-wrap justify-center gap-2 rounded-full border border-border bg-card p-2"
+            role="group"
+            aria-label={copy.chooseDuration}
+          >
+            {SESSION_OPTIONS.map((session) => (
+              <button
+                key={session.key}
+                type="button"
+                aria-pressed={minutes === session.minutes}
+                onClick={() => setMinutes(session.minutes)}
+                className={
+                  "min-h-11 rounded-full px-5 py-2 text-sm font-semibold transition " +
+                  (minutes === session.minutes
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-sand")
+                }
+              >
+                {session.minutes} min
+              </button>
+            ))}
+          </div>
+          <div
+            id="membership"
+            className="mx-auto mt-10 grid max-w-6xl scroll-mt-28 gap-5 md:grid-cols-3"
+          >
+            {MEMBERSHIPS.map((membership) => {
+              const total = membership.prices[minutes];
+              const saving = standardPrice(minutes) * membership.sessions - total;
+              const message =
+                lang === "ro"
+                  ? `Bună! Mă interesează abonamentul ${membership.name}: ${membership.sessions} ședințe × ${minutes} min, ${total} lei. Aș dori detalii despre activare și valabilitate.`
+                  : `Hello! I am interested in the ${membership.name} membership: ${membership.sessions} sessions × ${minutes} min, ${total} lei. Please share activation and validity details.`;
               return (
                 <article
-                  key={sessionCount}
-                  className="rounded-[2rem] border border-border/80 bg-card p-7 shadow-soft"
+                  key={membership.key}
+                  className={
+                    "membership-card flex flex-col rounded-[2rem] border p-6 sm:p-7 " +
+                    (membership.featured
+                      ? "border-gold bg-primary text-primary-foreground shadow-lift"
+                      : "border-border bg-card shadow-soft")
+                  }
+                  data-tier={membership.key}
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="eyebrow">{sessionCount} EXPERIENCE MEMBERSHIP</p>
-                      <h4 className="mt-2 text-3xl">{copy.chooseDuration}</h4>
-                    </div>
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gold-soft text-clay">
-                      <Check className="h-4 w-4" />
-                    </span>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-widest">Membership</p>
+                    {membership.featured && (
+                      <span className="rounded-full bg-gold-soft px-3 py-1 text-xs font-semibold text-primary">
+                        {copy.popular}
+                      </span>
+                    )}
                   </div>
-
-                  <div className="mt-7 divide-y divide-border/70 border-y border-border/70">
-                    {options.map((membership) => {
-                      const regular =
-                        standardPrice(membership.minutes) * membership.sessions;
-                      const saving = regular - membership.priceLei;
-                      return (
-                        <div
-                          key={membership.minutes}
-                          className="flex items-center justify-between gap-4 py-4"
-                        >
-                          <div>
-                            <p className="font-medium">{membership.minutes} min</p>
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {membership.sessions} {copy.sessions}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-display text-2xl">
-                              {membership.priceLei}{" "}
-                              <span className="text-base">lei</span>
-                            </p>
-                            {saving > 0 && (
-                              <p className="mt-1 text-xs font-medium text-primary">
-                                {copy.save}: {saving} lei
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <h4 className="mt-5 text-4xl">{membership.name}</h4>
+                  <p className="mt-2 text-sm opacity-80">
+                    {membership.sessions} {copy.sessions} × {minutes} min
+                  </p>
+                  <p className="mt-8 font-display text-5xl">
+                    {total} <span className="text-xl">lei</span>
+                  </p>
+                  <p className="mt-2 text-sm">
+                    {total / membership.sessions} lei / {lang === "ro" ? "ședință" : "session"}
+                  </p>
+                  <p className="mt-4 w-fit rounded-full bg-gold-soft px-3 py-1.5 text-xs font-semibold text-primary">
+                    {copy.save} {saving} lei · {Math.round((saving / (total + saving)) * 100)}%
+                  </p>
+                  <ul className="my-7 flex-1 space-y-3 border-t border-current/15 pt-6 text-sm">
+                    {[
+                      lang === "ro"
+                        ? "Alegi tratamentul la fiecare vizită"
+                        : "Choose your treatment for each visit",
+                      lang === "ro"
+                        ? "Experiență privată la tine acasă"
+                        : "A private experience in your home",
+                      lang === "ro"
+                        ? "Programări stabilite împreună cu tine"
+                        : "Appointments arranged around you",
+                    ].map((text) => (
+                      <li key={text} className="flex items-start gap-2">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0" />
+                        {text}
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href={whatsappLink(lang, message)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={
+                      "inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-sm font-semibold " +
+                      (membership.featured
+                        ? "bg-background text-primary"
+                        : "bg-primary text-primary-foreground")
+                    }
+                  >
+                    {lang === "ro" ? "Solicită" : "Enquire about"} {membership.name}
+                    <ArrowUpRight className="h-4 w-4 shrink-0" />
+                  </a>
                 </article>
               );
             })}
           </div>
+          <p className="mx-auto mt-6 max-w-3xl text-center text-sm leading-6 text-muted-foreground">
+            {lang === "ro"
+              ? "Abonamente preplătite, fără reînnoire automată. Economiile sunt calculate față de ședințele individuale de aceeași durată. Activarea, valabilitatea și condițiile de utilizare se confirmă cu SPA NAZ înainte de plată. Programările depind de disponibilitate."
+              : "Prepaid memberships with no automatic renewal. Savings compare individual sessions of the same length. Activation, validity and usage terms are confirmed with SPA NAZ before payment. Appointments are subject to availability."}
+          </p>
         </div>
       </div>
     </section>

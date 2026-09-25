@@ -1,3 +1,5 @@
+import { getBookedSlots, slotIsAvailable } from "@/lib/availability-store";
+import { futureAppointment } from "@/lib/appointment";
 import type { AdminSession } from "@/lib/admin-auth";
 import { getFirebasePublicConfig } from "@/lib/runtime-config";
 
@@ -5,6 +7,7 @@ export type BookingStatus = "pending" | "confirmed" | "completed" | "cancelled";
 
 export type AdminBooking = {
   id: string;
+  version: string;
   reference: string;
   name: string;
   phone: string;
@@ -47,6 +50,7 @@ type FirestoreValue = {
 
 type FirestoreDocument = {
   name?: string;
+  updateTime?: string;
   fields?: Record<string, FirestoreValue>;
 };
 
@@ -70,6 +74,7 @@ function parseBooking(document: FirestoreDocument): AdminBooking {
 
   return {
     id,
+    version: document.updateTime ?? "",
     reference: stringField(fields, "reference") || fallbackReference,
     name: stringField(fields, "name"),
     phone: stringField(fields, "phone"),
@@ -125,7 +130,6 @@ export async function listAdminBookings(session: AdminSession): Promise<AdminBoo
       structuredQuery: {
         from: [{ collectionId: "bookings" }],
         orderBy: [{ field: { fieldPath: "createdAt" }, direction: "DESCENDING" }],
-        limit: 200,
       },
     }),
   });
@@ -143,12 +147,7 @@ const integerValue = (value: number) => ({ integerValue: String(value) });
 const timestampValue = (value: string) => ({ timestampValue: value });
 
 function documentName(projectId: string, path: string) {
-  return (
-    "projects/" +
-    projectId +
-    "/databases/(default)/documents/" +
-    path
-  );
+  return "projects/" + projectId + "/databases/(default)/documents/" + path;
 }
 
 export async function updateAdminBooking(
@@ -175,15 +174,56 @@ export async function updateAdminBooking(
   }
 
   const nextStatus = patch.status ?? booking.status;
-  const nextDate =
-    (patch.confirmedDate ?? booking.confirmedDate) || booking.appointmentDate;
-  const nextTime =
-    (patch.confirmedTime ?? booking.confirmedTime) || booking.appointmentTime;
+  const nextDate = (patch.confirmedDate ?? booking.confirmedDate) || booking.appointmentDate;
+  const nextTime = (patch.confirmedTime ?? booking.confirmedTime) || booking.appointmentTime;
 
   const oldDate = booking.confirmedDate || booking.appointmentDate;
   const oldWasConfirmed = booking.status === "confirmed" && Boolean(oldDate);
-  const nextIsConfirmed =
-    nextStatus === "confirmed" && Boolean(nextDate) && Boolean(nextTime);
+  const nextIsConfirmed = nextStatus === "confirmed" && Boolean(nextDate) && Boolean(nextTime);
+
+  let scheduleGuard: Record<string, unknown> | null = null;
+  // Read the day's revision before availability. A concurrent confirmation then
+  // makes our atomic commit fail instead of double-booking another appointment.
+  if (nextIsConfirmed) {
+    const guardName = documentName(projectId, "scheduleLocks/" + nextDate);
+    const guardResponse = await fetch(
+      "https://firestore.googleapis.com/v1/" + guardName + "?key=" + encodeURIComponent(apiKey),
+      {
+        headers: { authorization: "Bearer " + session.idToken },
+      },
+    );
+    if (!guardResponse.ok && guardResponse.status !== 404)
+      throw new Error(await readError(guardResponse));
+    const guard = guardResponse.ok
+      ? ((await guardResponse.json()) as { updateTime?: string })
+      : null;
+    scheduleGuard = {
+      update: { name: guardName, fields: { updatedAt: timestampValue(now) } },
+      currentDocument: guard?.updateTime ? { updateTime: guard.updateTime } : { exists: false },
+    };
+  }
+
+  if (
+    nextIsConfirmed &&
+    (booking.status !== "confirmed" ||
+      oldDate !== nextDate ||
+      (booking.confirmedTime || booking.appointmentTime) !== nextTime)
+  ) {
+    if (!futureAppointment(nextDate, nextTime))
+      throw new Error("Choose a future appointment in Bucharest time.");
+    const slots = await getBookedSlots(nextDate);
+    if (
+      !slotIsAvailable(
+        slots.filter((slot) => slot.id !== booking.id),
+        nextTime,
+        booking.durationMinutes * Math.max(1, booking.people),
+      )
+    ) {
+      throw new Error(
+        "This appointment overlaps an occupied slot or extends past midnight. Choose another time and refresh the calendar.",
+      );
+    }
+  }
 
   const writes: Array<Record<string, unknown>> = [
     {
@@ -192,29 +232,25 @@ export async function updateAdminBooking(
         fields,
       },
       updateMask: { fieldPaths: Object.keys(fields) },
-      currentDocument: { exists: true },
+      currentDocument: booking.version ? { updateTime: booking.version } : { exists: true },
     },
   ];
 
+  if (scheduleGuard) writes.push(scheduleGuard);
+
   if (oldWasConfirmed && (!nextIsConfirmed || oldDate !== nextDate)) {
     writes.push({
-      delete: documentName(
-        projectId,
-        "availability/" + oldDate + "/slots/" + booking.id,
-      ),
+      delete: documentName(projectId, "availability/" + oldDate + "/slots/" + booking.id),
     });
   }
 
   if (nextIsConfirmed) {
     writes.push({
       update: {
-        name: documentName(
-          projectId,
-          "availability/" + nextDate + "/slots/" + booking.id,
-        ),
+        name: documentName(projectId, "availability/" + nextDate + "/slots/" + booking.id),
         fields: {
           startTime: stringValue(nextTime),
-          durationMinutes: integerValue(booking.durationMinutes),
+          durationMinutes: integerValue(booking.durationMinutes * Math.max(1, booking.people)),
           status: stringValue("booked"),
           updatedAt: timestampValue(now),
         },
@@ -240,7 +276,11 @@ export async function updateAdminBooking(
     body: JSON.stringify({ writes }),
   });
 
-  if (!response.ok) throw new Error(await readError(response));
+  if (!response.ok) {
+    if (response.status === 409 || response.status === 412)
+      throw new Error("The calendar changed while saving. Refresh and try again.");
+    throw new Error(await readError(response));
+  }
 }
 
 export async function seedConfirmedAvailability(
@@ -267,7 +307,7 @@ export async function seedConfirmedAvailability(
       ),
       fields: {
         startTime: stringValue(booking.confirmedTime || booking.appointmentTime),
-        durationMinutes: integerValue(booking.durationMinutes),
+        durationMinutes: integerValue(booking.durationMinutes * Math.max(1, booking.people)),
         status: stringValue("booked"),
         updatedAt: timestampValue(new Date().toISOString()),
       },

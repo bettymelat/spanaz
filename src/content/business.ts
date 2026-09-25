@@ -23,8 +23,8 @@ export const BUSINESS = {
   ],
   hours: [{ days: "Program", value: "Cu programare / By appointment" }],
   social: {
-    instagram: "#",
-    facebook: "#",
+    instagram: "https://www.instagram.com/spa_naz_bucharest/",
+    facebook: "https://www.facebook.com/share/1LrcN96bqi/",
     tiktok: "#",
   },
 } as const;
@@ -152,13 +152,29 @@ export const SERVICES: {
   },
 ];
 
+// Prepaid packages; activation and payment are arranged directly with SPA NAZ.
 export const MEMBERSHIPS = [
-  { sessions: 5, minutes: 60, priceLei: 950 },
-  { sessions: 10, minutes: 60, priceLei: 1800 },
-  { sessions: 5, minutes: 90, priceLei: 1275 },
-  { sessions: 10, minutes: 90, priceLei: 2400 },
-  { sessions: 5, minutes: 120, priceLei: 1600 },
-  { sessions: 10, minutes: 120, priceLei: 3000 },
+  {
+    key: "bronze",
+    name: "Bronze",
+    sessions: 4,
+    featured: false,
+    prices: { 60: 720, 90: 960, 120: 1200 },
+  },
+  {
+    key: "silver",
+    name: "Silver",
+    sessions: 8,
+    featured: true,
+    prices: { 60: 1360, 90: 1840, 120: 2320 },
+  },
+  {
+    key: "gold",
+    name: "Gold",
+    sessions: 12,
+    featured: false,
+    prices: { 60: 1920, 90: 2640, 120: 3360 },
+  },
 ] as const;
 
 export const SERVICE_AREAS = ["Sector 1", "Sector 4", "Sector 6"] as const;

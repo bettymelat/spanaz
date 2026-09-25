@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { bucharestNow, futureAppointment } from "@/lib/appointment";
+import type { BookingSelection } from "@/lib/booking-selection";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -9,7 +11,7 @@ import {
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { SERVICES, SERVICE_AREAS, SESSION_OPTIONS, whatsappLink } from "@/content/business";
-import { BookingConfigurationError, createBooking } from "@/lib/booking-store";
+import { createBooking } from "@/lib/booking-store";
 import { validateAndNormalizePhone } from "@/lib/phone";
 import { getBookedSlots, slotIsAvailable } from "@/lib/availability-store";
 
@@ -62,18 +64,20 @@ function Field({
         {label}
       </label>
       {children}
-      {hint && !error && <p className="mt-2 text-[0.72rem] leading-5 text-muted-foreground">{hint}</p>}
-      {error && <p className="mt-2 text-[0.72rem] font-medium text-destructive">{error}</p>}
+      {hint && !error && (
+        <p className="mt-2 text-[0.72rem] leading-5 text-muted-foreground">{hint}</p>
+      )}
+      {error && (
+        <p
+          id={`${id}-error`}
+          role="alert"
+          className="mt-2 text-[0.72rem] font-medium text-destructive"
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
-}
-
-function localDateInputValue() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return year + "-" + month + "-" + day;
 }
 
 export function BookingForm() {
@@ -89,11 +93,49 @@ export function BookingForm() {
   const [time, setTime] = useState("");
   const [sessionKey, setSessionKey] = useState("restore");
   const [availability, setAvailability] = useState<AvailabilityState>("idle");
-  const minDate = useMemo(localDateInputValue, []);
+  const minDate = bucharestNow().date;
+  const [serviceKey, setServiceKey] = useState("");
+  const [people, setPeople] = useState(1);
+  const formRef = useRef<HTMLFormElement>(null);
   const formStartedAt = useRef(Date.now());
 
   const selectedSession =
     SESSION_OPTIONS.find((item) => item.key === sessionKey) ?? SESSION_OPTIONS[0]!;
+
+  useEffect(() => {
+    const select = (event: Event) => {
+      const detail = (event as CustomEvent<BookingSelection>).detail;
+      if (detail.service && SERVICES.some((item) => item.key === detail.service))
+        setServiceKey(detail.service);
+      if (detail.session && SESSION_OPTIONS.some((item) => item.key === detail.session))
+        setSessionKey(detail.session);
+      setSent(false);
+    };
+    window.addEventListener("spanaz:booking-selection", select);
+    return () => window.removeEventListener("spanaz:booking-selection", select);
+  }, []);
+
+  useEffect(() => {
+    for (const field of [
+      "name",
+      "phone",
+      "service",
+      "session",
+      "date",
+      "time",
+      "sector",
+      "address",
+      "privacy",
+      "terms",
+    ] as const) {
+      const input = formRef.current?.elements.namedItem(field);
+      if (input instanceof HTMLElement) {
+        input.setAttribute("aria-invalid", String(Boolean(errors[field])));
+        if (errors[field]) input.setAttribute("aria-describedby", `${field}-error`);
+        else input.removeAttribute("aria-describedby");
+      }
+    }
+  }, [errors]);
 
   const labels =
     lang === "ro"
@@ -107,19 +149,19 @@ export function BookingForm() {
             "Rezervarea nu a putut fi trimisă acum. Încearcă din nou sau contactează SPA NAZ pe WhatsApp.",
           reference: "Referință rezervare",
           requested: "Cererea ta",
-          pastDate: "Alege data de astăzi sau o dată viitoare",
+          pastDate: "Alege o dată și o oră viitoare (ora Bucureștiului)",
           pendingNote:
             "Cererea a fost înregistrată. Intervalul rămâne definitiv numai după confirmarea SPA NAZ.",
           availabilityIdle: "Alege data și ora pentru a verifica intervalul.",
           availabilityChecking: "Verificăm programările confirmate…",
           availabilityAvailable: "Intervalul este liber în calendarul curent.",
-          availabilityUnavailable: "Acest interval se suprapune cu o programare confirmată. Alege altă oră.",
+          availabilityUnavailable:
+            "Acest interval se suprapune cu o programare confirmată. Alege altă oră.",
           availabilityUnknown:
             "Nu am putut verifica disponibilitatea live. Poți trimite cererea, iar SPA NAZ va confirma manual.",
           privacy:
             "Am citit Politica de confidențialitate și înțeleg cum sunt folosite datele mele pentru gestionarea cererii.",
-          terms:
-            "Accept Termenii și Politica de anulare pentru această cerere de programare.",
+          terms: "Accept Termenii și Politica de anulare pentru această cerere de programare.",
           requiredLegal: "Confirmă această opțiune pentru a continua.",
         }
       : {
@@ -132,19 +174,19 @@ export function BookingForm() {
             "We couldn't send your booking request right now. Please try again or contact SPA NAZ on WhatsApp.",
           reference: "Booking reference",
           requested: "Your request",
-          pastDate: "Choose today or a future date",
+          pastDate: "Choose a future date and time (Bucharest time)",
           pendingNote:
             "Your request is recorded. The time becomes final only after SPA NAZ confirms it.",
           availabilityIdle: "Choose a date and time to check the calendar.",
           availabilityChecking: "Checking confirmed appointments…",
           availabilityAvailable: "This time is currently open in the calendar.",
-          availabilityUnavailable: "This time overlaps a confirmed appointment. Choose another time.",
+          availabilityUnavailable:
+            "This time overlaps a confirmed appointment. Choose another time.",
           availabilityUnknown:
             "Live availability could not be checked. You can still send the request and SPA NAZ will confirm manually.",
           privacy:
             "I have read the Privacy Policy and understand how my data is used to manage this request.",
-          terms:
-            "I accept the Terms and Cancellation Policy for this appointment request.",
+          terms: "I accept the Terms and Cancellation Policy for this appointment request.",
           requiredLegal: "Confirm this option to continue.",
         };
 
@@ -162,7 +204,9 @@ export function BookingForm() {
         .then((slots) => {
           if (cancelled) return;
           setAvailability(
-            slotIsAvailable(slots, time, selectedSession.minutes) ? "available" : "unavailable",
+            slotIsAvailable(slots, time, selectedSession.minutes * people)
+              ? "available"
+              : "unavailable",
           );
         })
         .catch(() => {
@@ -174,7 +218,7 @@ export function BookingForm() {
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [date, time, selectedSession]);
+  }, [date, time, selectedSession, people]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -183,12 +227,6 @@ export function BookingForm() {
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const next: Errors = {};
-
-    // Low-friction bot trap. Real users never see or interact with this field.
-    if (String(form.get("website") ?? "").trim() || Date.now() - formStartedAt.current < 600) {
-      setSubmitError(labels.onlineError);
-      return;
-    }
 
     const required: FieldName[] = [
       "name",
@@ -207,7 +245,17 @@ export function BookingForm() {
 
     const phoneResult = validateAndNormalizePhone(phone);
     if (!phoneResult.valid) next.phone = labels.phoneInvalid;
-    if (date && date < minDate) next.date = labels.pastDate;
+    if (date && time && !futureAppointment(date, time)) next.time = labels.pastDate;
+    const name = String(form.get("name") ?? "").trim();
+    const address = String(form.get("address") ?? "").trim();
+    if (name.length < 2 || name.length > 120)
+      next.name =
+        lang === "ro" ? "Introdu un nume de 2–120 caractere." : "Enter a name of 2–120 characters.";
+    if (address.length < 4 || address.length > 300)
+      next.address =
+        lang === "ro"
+          ? "Introdu o adresă de 4–300 caractere."
+          : "Enter an address of 4–300 characters.";
     if (availability === "unavailable") next.time = labels.availabilityUnavailable;
     if (!form.get("privacy")) next.privacy = labels.requiredLegal;
     if (!form.get("terms")) next.terms = labels.requiredLegal;
@@ -221,17 +269,21 @@ export function BookingForm() {
 
     setErrors(next);
     setSubmitError("");
-    if (Object.keys(next).length > 0 || !service || !session || !phoneResult.valid) return;
+    if (Object.keys(next).length > 0 || !service || !session || !phoneResult.valid) {
+      const first = formElement.elements.namedItem(Object.keys(next)[0] ?? "name");
+      if (first instanceof HTMLElement) first.focus();
+      return;
+    }
+
+    // Low-friction bot trap. Real users never see or interact with this field.
+    if (String(form.get("website") ?? "").trim() || Date.now() - formStartedAt.current < 600) {
+      setSubmitError(labels.onlineError);
+      return;
+    }
 
     const summary: SubmittedSummary = {
       service: service.name[lang],
-      session:
-        session.name +
-        " · " +
-        session.minutes +
-        " min · " +
-        session.priceLei +
-        " lei",
+      session: session.name + " · " + session.minutes + " min · " + session.priceLei + " lei",
       date,
       time,
       sector: String(form.get("sector") ?? ""),
@@ -239,6 +291,12 @@ export function BookingForm() {
 
     setSubmitting(true);
     try {
+      const slots = await getBookedSlots(date).catch(() => null);
+      if (slots && !slotIsAvailable(slots, time, session.minutes * people)) {
+        setAvailability("unavailable");
+        setErrors({ time: labels.availabilityUnavailable });
+        return;
+      }
       const result = await createBooking({
         name: String(form.get("name") ?? "").trim(),
         phone: phoneResult.normalized,
@@ -252,8 +310,10 @@ export function BookingForm() {
         time,
         sector: summary.sector,
         address: String(form.get("address") ?? "").trim(),
-        people: Number(form.get("people") ?? 1),
-        message: String(form.get("message") ?? "").trim().slice(0, 1000),
+        people,
+        message: String(form.get("message") ?? "")
+          .trim()
+          .slice(0, 1000),
         language: lang,
       });
 
@@ -262,6 +322,8 @@ export function BookingForm() {
       setSent(true);
       formElement.reset();
       setPhone("");
+      setServiceKey("");
+      setPeople(1);
       setDate("");
       setTime("");
       setSessionKey("restore");
@@ -320,13 +382,14 @@ export function BookingForm() {
           </div>
         )}
 
-        <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-          {labels.pendingNote}
-        </p>
+        <p className="mt-4 text-xs leading-relaxed text-muted-foreground">{labels.pendingNote}</p>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <a
-            href={whatsappLink(lang)}
+            href={whatsappLink(
+              lang,
+              bookingReference ? `${labels.reference}: ${bookingReference}` : undefined,
+            )}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 rounded-full bg-whatsapp px-6 py-3.5 text-sm font-medium text-whatsapp-foreground"
@@ -363,11 +426,15 @@ export function BookingForm() {
 
   return (
     <form
+      ref={formRef}
       onSubmit={handleSubmit}
       noValidate
       className="relative mx-auto w-full overflow-hidden rounded-[2.25rem] border border-border/80 bg-card/95 p-5 shadow-lift sm:p-8 lg:p-9"
     >
-      <div className="pointer-events-none absolute -left-[10000px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
+      <div
+        className="pointer-events-none absolute -left-[10000px] top-auto h-px w-px overflow-hidden"
+        aria-hidden="true"
+      >
         <label htmlFor="website">Website</label>
         <input id="website" name="website" tabIndex={-1} autoComplete="off" />
       </div>
@@ -384,15 +451,10 @@ export function BookingForm() {
 
       <div className="grid gap-x-5 gap-y-5 sm:grid-cols-2">
         <Field id="name" label={t.booking.fields.name} error={errors.name}>
-          <input id="name" name="name" autoComplete="name" className={inputClass} />
+          <input id="name" name="name" maxLength={120} autoComplete="name" className={inputClass} />
         </Field>
 
-        <Field
-          id="phone"
-          label={labels.phone}
-          error={errors.phone}
-          hint={labels.phoneHint}
-        >
+        <Field id="phone" label={labels.phone} error={errors.phone} hint={labels.phoneHint}>
           <input
             id="phone"
             name="phone"
@@ -417,7 +479,13 @@ export function BookingForm() {
         </Field>
 
         <Field id="service" label={t.booking.fields.service} error={errors.service}>
-          <select id="service" name="service" defaultValue="" className={inputClass}>
+          <select
+            id="service"
+            name="service"
+            value={serviceKey}
+            onChange={(event) => setServiceKey(event.target.value)}
+            className={inputClass}
+          >
             <option value="" disabled>
               {t.booking.select}
             </option>
@@ -447,7 +515,13 @@ export function BookingForm() {
         </Field>
 
         <Field id="people" label={t.booking.fields.people}>
-          <select id="people" name="people" defaultValue="1" className={inputClass}>
+          <select
+            id="people"
+            name="people"
+            value={people}
+            onChange={(event) => setPeople(Number(event.target.value))}
+            className={inputClass}
+          >
             {[1, 2, 3, 4].map((number) => (
               <option key={number} value={number}>
                 {number}
@@ -498,6 +572,8 @@ export function BookingForm() {
 
         <div className="sm:col-span-2">
           <div
+            role="status"
+            aria-live="polite"
             className={
               "flex min-h-12 items-start gap-2.5 rounded-[1rem] border px-4 py-3 text-[0.8rem] leading-5 " +
               (availability === "available"
@@ -524,6 +600,7 @@ export function BookingForm() {
               id="address"
               name="address"
               autoComplete="street-address"
+              maxLength={300}
               className={inputClass}
             />
           </Field>
@@ -542,6 +619,24 @@ export function BookingForm() {
         </div>
       </div>
 
+      <div className="mt-6 rounded-2xl border border-gold/30 bg-sand p-5" aria-live="polite">
+        <p className="eyebrow">{lang === "ro" ? "Rezumatul cererii" : "Your booking summary"}</p>
+        <p className="mt-2 font-display text-2xl">
+          {selectedSession.minutes} min × {people} · {selectedSession.priceLei * people} lei
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {lang === "ro" ? "Preț per persoană: " : "Price per person: "}
+          {selectedSession.priceLei} lei.{" "}
+          {lang === "ro"
+            ? "Ședințe consecutive; pentru ședințe simultane, contactează-ne. Toate orele sunt pentru București. Nu se percepe nicio plată online."
+            : "Consecutive sessions; contact us for simultaneous treatments. All times are in Bucharest. No online payment is taken."}
+        </p>
+        <a href="#account" className="mt-3 inline-block text-sm font-semibold underline">
+          {lang === "ro"
+            ? "Autentifică-te înainte de trimitere pentru a gestiona cererea din cont."
+            : "Sign in before submitting to manage this request in your account."}
+        </a>
+      </div>
       <div className="mt-7 space-y-4 rounded-[1.25rem] border border-border/70 bg-background/60 p-4 sm:p-5">
         <label htmlFor="privacy" className="flex items-start gap-3 text-sm text-muted-foreground">
           <input
@@ -552,12 +647,20 @@ export function BookingForm() {
           />
           <span>
             {labels.privacy}{" "}
-            <a href="/privacy" target="_blank" className="font-medium text-primary underline-offset-2 hover:underline">
+            <a
+              href="/privacy"
+              target="_blank"
+              className="font-medium text-primary underline-offset-2 hover:underline"
+            >
               {lang === "ro" ? "Politica de confidențialitate" : "Privacy Policy"}
             </a>
           </span>
         </label>
-        {errors.privacy && <p className="text-xs text-destructive">{errors.privacy}</p>}
+        {errors.privacy && (
+          <p id="privacy-error" role="alert" className="text-xs text-destructive">
+            {errors.privacy}
+          </p>
+        )}
 
         <label htmlFor="terms" className="flex items-start gap-3 text-sm text-muted-foreground">
           <input
@@ -568,16 +671,28 @@ export function BookingForm() {
           />
           <span>
             {labels.terms}{" "}
-            <a href="/terms" target="_blank" className="font-medium text-primary underline-offset-2 hover:underline">
+            <a
+              href="/terms"
+              target="_blank"
+              className="font-medium text-primary underline-offset-2 hover:underline"
+            >
               {lang === "ro" ? "Termeni" : "Terms"}
             </a>
             {" · "}
-            <a href="/cancellation" target="_blank" className="font-medium text-primary underline-offset-2 hover:underline">
+            <a
+              href="/cancellation"
+              target="_blank"
+              className="font-medium text-primary underline-offset-2 hover:underline"
+            >
               {lang === "ro" ? "Anulare" : "Cancellation"}
             </a>
           </span>
         </label>
-        {errors.terms && <p className="text-xs text-destructive">{errors.terms}</p>}
+        {errors.terms && (
+          <p id="terms-error" role="alert" className="text-xs text-destructive">
+            {errors.terms}
+          </p>
+        )}
       </div>
 
       {submitError && (

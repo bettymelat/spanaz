@@ -10,7 +10,7 @@ export function SpaFaq() {
           items: [
             {
               q: "Veniți la domiciliu?",
-              a: "Da. SPA NAZ este un serviciu de masaj la domiciliu disponibil în Sectoarele 1, 4, 5 și 6 din București, în funcție de program și timpul de deplasare.",
+              a: "Da. SPA NAZ este un serviciu de masaj la domiciliu disponibil în Sectoarele 1, 4 și 6 din București, în funcție de program și timpul de deplasare.",
             },
             {
               q: "Ce tipuri de masaj pot rezerva?",
@@ -26,7 +26,7 @@ export function SpaFaq() {
             },
             {
               q: "Aveți pachete pentru masaj regulat?",
-              a: "Da. SPA NAZ Membership include pachete de 5 sau 10 ședințe pentru sesiunile de 60, 90 și 120 minute, la preț redus.",
+              a: "Da. SPA NAZ Membership include abonamente Bronze (4 ședințe), Silver (8 ședințe) și Gold (12 ședințe) pentru sesiunile de 60, 90 și 120 minute, la preț redus.",
             },
             {
               q: "Ce trebuie să pregătesc acasă?",
@@ -34,7 +34,7 @@ export function SpaFaq() {
             },
             {
               q: "Cum modific sau anulez o programare?",
-              a: "Contactează SPA NAZ cât mai curând pe WhatsApp sau telefon. Condițiile aplicabile programării tale vor fi confirmate înainte de ședință.",
+              a: "Din cont poți anula o programare sau poți solicita o reprogramare prin WhatsApp, fără a pierde intervalul existent. Pentru rezervări fără cont, contactează SPA NAZ cu referința rezervării. Condițiile aplicabile programării tale vor fi confirmate înainte de ședință.",
             },
           ],
         }
@@ -43,7 +43,7 @@ export function SpaFaq() {
           items: [
             {
               q: "Do you come to my home?",
-              a: "Yes. SPA NAZ is a home massage service available in Bucharest Sectors 1, 4, 5 and 6, subject to schedule and travel time.",
+              a: "Yes. SPA NAZ is a home massage service available in Bucharest Sectors 1, 4 and 6, subject to schedule and travel time.",
             },
             {
               q: "Which massage types can I book?",
@@ -59,7 +59,7 @@ export function SpaFaq() {
             },
             {
               q: "Do you offer packages for regular massage?",
-              a: "Yes. SPA NAZ Membership offers 5- and 10-session packages for 60-, 90- and 120-minute sessions at reduced package prices.",
+              a: "Yes. SPA NAZ Membership offers Bronze (4 sessions), Silver (8 sessions) and Gold (12 sessions) memberships for 60-, 90- and 120-minute sessions at reduced package prices.",
             },
             {
               q: "What should I prepare at home?",
@@ -67,7 +67,7 @@ export function SpaFaq() {
             },
             {
               q: "How do I change or cancel an appointment?",
-              a: "Contact SPA NAZ as early as possible by WhatsApp or phone. Any conditions applicable to your appointment will be confirmed before the session.",
+              a: "From your account you can cancel or request a new time via WhatsApp while keeping your existing appointment. For guest bookings, contact SPA NAZ with your booking reference. Any conditions applicable to your appointment will be confirmed before the session.",
             },
           ],
         };
@@ -81,7 +81,10 @@ export function SpaFaq() {
         </div>
         <div className="mt-10 space-y-3">
           {copy.items.map((item) => (
-            <details key={item.q} className="surface-card group p-5 [&_summary::-webkit-details-marker]:hidden">
+            <details
+              key={item.q}
+              className="surface-card group p-5 [&_summary::-webkit-details-marker]:hidden"
+            >
               <summary className="flex cursor-pointer items-center justify-between gap-4 text-base font-medium text-foreground">
                 {item.q}
                 <ChevronDown className="h-4 w-4 shrink-0 text-gold transition-transform group-open:rotate-180" />

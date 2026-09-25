@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { en, ro, type Copy } from "@/content/copy";
 
 export type Lang = "ro" | "en";
@@ -11,15 +19,26 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>("ro");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("spanaz-lang");
-    if (stored === "en" || stored === "ro") setLangState(stored);
+    try {
+      const stored = window.localStorage.getItem("spanaz-lang");
+      if (stored === "en" || stored === "ro") setLangState(stored);
+    } catch {
+      /* Storage may be unavailable in private browsing. */
+    }
   }, []);
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l);
-    window.localStorage.setItem("spanaz-lang", l);
-    document.documentElement.lang = l;
+    try {
+      window.localStorage.setItem("spanaz-lang", l);
+    } catch {
+      /* Keep language usable without storage. */
+    }
   }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const value = useMemo(() => ({ lang, setLang, t: lang === "en" ? en : ro }), [lang, setLang]);
 

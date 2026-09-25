@@ -1,3 +1,5 @@
+import { getFirebasePublicConfig } from "@/lib/runtime-config";
+import { timeMinutes, validDate } from "@/lib/appointment";
 type FirestoreValue = {
   stringValue?: string;
   integerValue?: string;
@@ -14,27 +16,9 @@ export type BookedSlot = {
   durationMinutes: number;
 };
 
-function firebaseConfig() {
-  const projectId = import.meta.env["VITE_FIREBASE_PROJECT_ID"]?.trim();
-  const apiKey = import.meta.env["VITE_FIREBASE_API_KEY"]?.trim();
-  if (!projectId || !apiKey) {
-    throw new Error("Firebase availability is not configured.");
-  }
-  return { projectId, apiKey };
-}
-
-function minutes(time: string) {
-  const parts = time.split(":");
-  if (parts.length !== 2) return null;
-  const h = Number(parts[0] ?? Number.NaN);
-  const m = Number(parts[1] ?? Number.NaN);
-  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
-  return h * 60 + m;
-}
-
 export async function getBookedSlots(date: string): Promise<BookedSlot[]> {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return [];
-  const { projectId, apiKey } = firebaseConfig();
+  if (!validDate(date)) return [];
+  const { projectId, apiKey } = await getFirebasePublicConfig();
 
   const endpoint =
     "https://firestore.googleapis.com/v1/projects/" +
@@ -65,15 +49,20 @@ export function slotIsAvailable(
   durationMinutes: number,
   travelBufferMinutes = 30,
 ) {
-  const requestedStart = minutes(startTime);
-  if (requestedStart === null) return false;
+  const requestedStart = timeMinutes(startTime);
+  if (
+    requestedStart === null ||
+    !Number.isFinite(durationMinutes) ||
+    durationMinutes <= 0 ||
+    requestedStart + durationMinutes > 1440
+  )
+    return false;
   const requestedEnd = requestedStart + durationMinutes + travelBufferMinutes;
 
   return !booked.some((slot) => {
-    const existingStart = minutes(slot.startTime);
+    const existingStart = timeMinutes(slot.startTime);
     if (existingStart === null) return false;
-    const existingEnd =
-      existingStart + Math.max(30, slot.durationMinutes) + travelBufferMinutes;
+    const existingEnd = existingStart + Math.max(30, slot.durationMinutes) + travelBufferMinutes;
     return requestedStart < existingEnd && existingStart < requestedEnd;
   });
 }

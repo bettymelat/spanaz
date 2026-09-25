@@ -1,7 +1,7 @@
 import { MessageCircle, MapPin, Sparkles } from "lucide-react";
 import heroImage from "@/assets/hero-home-spa.jpg";
 import { useI18n } from "@/lib/i18n";
-import { whatsappLink } from "@/content/business";
+import { whatsappLink, SESSION_OPTIONS } from "@/content/business";
 
 export function Hero() {
   const { t, lang } = useI18n();
@@ -13,8 +13,7 @@ export function Hero() {
           title: "Relaxarea vine la tine.",
           subtitle:
             "SPA NAZ transformă casa ta într-un spa privat — fără trafic, fără sală de așteptare și fără graba unei vizite la salon.",
-          detail:
-            "Tu alegi momentul. Noi aducem ritualul, atmosfera și experiența.",
+          detail: "Tu alegi momentul. Noi aducem ritualul, atmosfera și experiența.",
           imageTagline: "Casa ta. Timpul tău.",
           privateLabel: "Programări private",
           professionalLabel: "Masaj profesional",
@@ -26,8 +25,7 @@ export function Hero() {
           title: "Relaxation comes to you.",
           subtitle:
             "SPA NAZ turns your home into a private spa — no traffic, no waiting room and no rushed salon visit.",
-          detail:
-            "You choose the moment. We bring the ritual, atmosphere and experience.",
+          detail: "You choose the moment. We bring the ritual, atmosphere and experience.",
           imageTagline: "Your home. Your time.",
           privateLabel: "Private appointments",
           professionalLabel: "Professional massage",
@@ -57,10 +55,16 @@ export function Hero() {
           <p className="mt-7 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
             {copy.subtitle}
           </p>
-          <p className="mt-2 max-w-xl text-base leading-7 text-foreground/80">
-            {copy.detail}
-          </p>
+          <p className="mt-2 max-w-xl text-base leading-7 text-foreground/80">{copy.detail}</p>
 
+          <a
+            href="#preturi"
+            className="mt-6 inline-flex flex-wrap items-center gap-2 rounded-full border border-gold/30 bg-card px-4 py-2 text-sm font-medium"
+          >
+            {lang === "ro" ? "De la" : "From"} {SESSION_OPTIONS[0].priceLei} lei /{" "}
+            {SESSION_OPTIONS[0].minutes} min <span aria-hidden="true">·</span>{" "}
+            {lang === "ro" ? "Vezi tarifele" : "Explore prices"} ↗
+          </a>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <a
               href="#rezervare"
@@ -100,14 +104,18 @@ export function Hero() {
               />
               <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/45 to-transparent" />
               <div className="absolute bottom-6 left-6 right-6 text-white">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/80">SPA NAZ · BUCUREȘTI</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/80">
+                  SPA NAZ · BUCUREȘTI
+                </p>
                 <p className="mt-2 font-display text-3xl">{copy.imageTagline}</p>
               </div>
             </div>
           </div>
 
           <div className="absolute -bottom-5 -left-3 hidden rounded-2xl border border-border/80 bg-background/90 px-5 py-4 shadow-soft backdrop-blur md:block">
-            <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">60 · 90 · 120 MIN</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+              60 · 90 · 120 MIN
+            </p>
             <p className="mt-1 font-display text-xl">Private spa, at home</p>
           </div>
         </div>

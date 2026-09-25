@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Menu, X, MessageCircle, ShieldCheck, UserRound } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { User } from "firebase/auth";
 import { useI18n } from "@/lib/i18n";
 import { whatsappLink } from "@/content/business";
@@ -19,6 +19,18 @@ const sections = [
 export function Header() {
   const { t, lang, setLang } = useI18n();
   const [open, setOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        menuButton.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [open]);
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -39,8 +51,7 @@ export function Header() {
     };
   }, []);
 
-  const isOwner =
-    user?.email?.trim().toLowerCase() === OWNER_ADMIN_EMAIL && user.emailVerified;
+  const isOwner = user?.email?.trim().toLowerCase() === OWNER_ADMIN_EMAIL && user.emailVerified;
   const accountHref = user ? "/account" : "/#account";
 
   return (
@@ -118,7 +129,9 @@ export function Header() {
 
           <button
             type="button"
-            aria-label="Meniu"
+            ref={menuButton}
+            aria-controls="mobile-navigation"
+            aria-label={lang === "ro" ? "Meniu" : "Menu"}
             aria-expanded={open}
             onClick={() => setOpen((value) => !value)}
             className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/80 bg-card/80 text-foreground shadow-soft lg:hidden"
@@ -129,7 +142,10 @@ export function Header() {
       </div>
 
       {open && (
-        <div className="border-t border-border/60 bg-background/98 lg:hidden">
+        <div
+          id="mobile-navigation"
+          className="max-h-[calc(100dvh-9rem)] overflow-y-auto border-t border-border/60 bg-background/98 lg:hidden"
+        >
           <nav className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
             <div className="mb-4 flex items-center justify-between">
               <p className="eyebrow">{lang === "ro" ? "Navigare" : "Navigation"}</p>
@@ -138,11 +154,10 @@ export function Header() {
                   <button
                     key={l}
                     type="button"
+                    aria-pressed={lang === l}
                     onClick={() => setLang(l)}
                     className={`rounded-full px-3 py-1.5 text-[0.66rem] font-bold uppercase tracking-[0.1em] ${
-                      lang === l
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground"
+                      lang === l ? "bg-primary text-primary-foreground" : "text-muted-foreground"
                     }`}
                   >
                     {l}
