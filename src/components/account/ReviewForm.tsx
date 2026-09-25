@@ -6,13 +6,14 @@ import { getReviewForBooking, submitReview, type SpaReview } from "@/lib/review-
 type Props = {
   booking: CustomerBooking;
   lang: "ro" | "en";
+  initiallyOpen?: boolean;
 };
 
-export function ReviewForm({ booking, lang }: Props) {
+export function ReviewForm({ booking, lang, initiallyOpen = false }: Props) {
   const text = (ro: string, en: string) => (lang === "ro" ? ro : en);
   const [existing, setExisting] = useState<SpaReview | null>(null);
   const [checking, setChecking] = useState(true);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
   const [author, setAuthor] = useState("");
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
