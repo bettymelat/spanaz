@@ -81,6 +81,12 @@ export function Header() {
               {t.nav[s.key]}
             </a>
           ))}
+          <a
+            href="/#recenzii"
+            className="relative py-2 text-[0.78rem] font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-left after:scale-x-0 after:bg-gold after:transition-transform hover:text-foreground hover:after:scale-x-100"
+          >
+            {lang === "ro" ? "Recenzii" : "Reviews"}
+          </a>
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -204,6 +210,13 @@ export function Header() {
                 {t.nav[s.key]}
               </a>
             ))}
+            <a
+              href="/#recenzii"
+              onClick={() => setOpen(false)}
+              className="block border-b border-border/60 py-4 font-display text-2xl text-foreground"
+            >
+              {lang === "ro" ? "Recenzii" : "Reviews"}
+            </a>
 
             <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">
               <a
