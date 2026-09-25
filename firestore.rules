@@ -204,7 +204,8 @@ service cloud.firestore {
     // Per-day revision document used to serialize owner confirmations and
     // prevent two concurrent updates from confirming overlapping appointments.
     match /scheduleLocks/{date} {
-      allow read, create, update: if
+      allow read: if isOwnerAdmin();
+      allow create, update: if
         isOwnerAdmin() &&
         request.resource.data.keys().hasOnly(['updatedAt']) &&
         request.resource.data.updatedAt is timestamp;
