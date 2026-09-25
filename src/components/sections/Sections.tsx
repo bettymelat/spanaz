@@ -220,8 +220,6 @@ export function Testimonials() {
     };
   }, []);
 
-  if (reviews.length === 0) return null;
-
   return (
     <section id="recenzii" className="scroll-mt-24 bg-sand py-16 lg:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -233,7 +231,30 @@ export function Testimonials() {
               : "Verified reviews from customers with completed appointments."
           }
         />
-        <div className="mt-12 grid gap-5 md:grid-cols-3">
+        {reviews.length === 0 ? (
+          <div className="surface-card mx-auto mt-10 max-w-2xl p-7 text-center sm:p-9">
+            <div className="mx-auto flex w-fit gap-1 text-gold" aria-hidden="true">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Star key={index} className="h-5 w-5 opacity-35" />
+              ))}
+            </div>
+            <h3 className="mt-4 text-2xl">
+              {lang === "ro" ? "Ai fost client SPA NAZ?" : "Have you visited SPA NAZ?"}
+            </h3>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+              {lang === "ro"
+                ? "După o programare finalizată, poți lăsa o recenzie verificată direct din contul tău."
+                : "After a completed appointment, you can leave a verified review directly from your account."}
+            </p>
+            <a
+              href="/account"
+              className="mt-6 inline-flex min-h-12 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground"
+            >
+              {lang === "ro" ? "Lasă o recenzie" : "Leave a review"}
+            </a>
+          </div>
+        ) : (
+          <div className="mt-12 grid gap-5 md:grid-cols-3">
           {reviews.slice(0, 6).map((review) => (
             <figure key={review.id} className="surface-card p-6">
               <div
@@ -264,7 +285,18 @@ export function Testimonials() {
               </figcaption>
             </figure>
           ))}
-        </div>
+          </div>
+        )}
+        {reviews.length > 0 && (
+          <div className="mt-8 text-center">
+            <a
+              href="/account"
+              className="inline-flex min-h-12 items-center justify-center rounded-full border border-primary px-6 text-sm font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground"
+            >
+              {lang === "ro" ? "Lasă o recenzie" : "Leave a review"}
+            </a>
+          </div>
+        )}
       </div>
     </section>
   );
