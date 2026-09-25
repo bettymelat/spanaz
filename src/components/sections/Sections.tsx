@@ -202,6 +202,7 @@ export function Pricing() {
 
 export function Testimonials() {
   const { t } = useI18n();
+  if (TESTIMONIALS.length === 0) return null;
   return (
     <section className="bg-sand py-16 lg:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
