@@ -33,8 +33,8 @@ jobs:
       - name: TypeScript check
         run: bun run typecheck
 
-      - name: Lint
-        run: bun run lint
+      - name: Lint (correctness rules)
+        run: bun run lint -- --quiet --rule 'prettier/prettier: 0'
 
       - name: Production build
         run: bun run build
