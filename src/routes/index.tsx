@@ -5,7 +5,7 @@ import { Footer } from "@/components/site/Footer";
 import { StickyCta } from "@/components/site/StickyCta";
 import { FloatingChat } from "@/components/site/FloatingChat";
 import { Hero } from "@/components/sections/Hero";
-import { TrustBar, WhyUs, HowItWorks, Contact } from "@/components/sections/Sections";
+import { TrustBar, WhyUs, HowItWorks, Testimonials, Contact } from "@/components/sections/Sections";
 import { Offerings, PricingAndMembership } from "@/components/sections/Offerings";
 import { HomeSpaExperience } from "@/components/sections/HomeSpaExperience";
 import { AboutBrand } from "@/components/sections/AboutBrand";
@@ -158,6 +158,7 @@ function Index() {
         <WhyUs />
         <HowItWorks />
         <AboutBrand />
+        <Testimonials />
         <PricingAndMembership />
         <Coverage />
         <SpaFaq />
