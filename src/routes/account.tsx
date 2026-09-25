@@ -4,6 +4,7 @@ import { CalendarDays, Loader2, RefreshCw, LogOut, MessageCircle } from "lucide-
 import type { User } from "firebase/auth";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
+import { ReviewForm } from "@/components/account/ReviewForm";
 import { BUSINESS, whatsappLink } from "@/content/business";
 import { useI18n } from "@/lib/i18n";
 import { calendarLink, bucharestNow } from "@/lib/appointment";
@@ -295,10 +296,6 @@ function AccountPage() {
                   `Bună! Aș dori să reprogramez rezervarea ${booking.reference}, din ${booking.confirmedDate || booking.appointmentDate} la ${booking.confirmedTime || booking.appointmentTime}.`,
                   `Hello! I would like to reschedule booking ${booking.reference}, on ${booking.confirmedDate || booking.appointmentDate} at ${booking.confirmedTime || booking.appointmentTime}.`,
                 );
-                const feedbackMessage = text(
-                  `Bună! Aș dori să las o recenzie pentru experiența SPA NAZ, rezervarea ${booking.reference}.`,
-                  `Hello! I would like to leave feedback about my SPA NAZ experience, booking ${booking.reference}.`,
-                );
                 return (
                   <article key={booking.id} className="surface-card p-5 sm:p-7">
                     <div className="flex flex-wrap justify-between gap-4">
@@ -389,23 +386,15 @@ function AccountPage() {
                           {text("Anulează", "Cancel appointment")}
                         </button>
                       )}
-                      {booking.status === "completed" && (
-                        <a
-                          href={whatsappLink(lang, feedbackMessage)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={button}
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                          {text("Lasă o recenzie", "Leave feedback")}
-                        </a>
-                      )}
                       {!active && (
                         <a href="/#rezervare" className={button}>
                           {text("Rezervă din nou", "Book again")}
                         </a>
                       )}
                     </div>
+                    {booking.status === "completed" && (
+                      <ReviewForm booking={booking} lang={lang} />
+                    )}
                     {active && (
                       <p className="mt-3 text-xs text-muted-foreground">
                         {text(
