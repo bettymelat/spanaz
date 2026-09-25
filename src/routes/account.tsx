@@ -295,6 +295,10 @@ function AccountPage() {
                   `Bună! Aș dori să reprogramez rezervarea ${booking.reference}, din ${booking.confirmedDate || booking.appointmentDate} la ${booking.confirmedTime || booking.appointmentTime}.`,
                   `Hello! I would like to reschedule booking ${booking.reference}, on ${booking.confirmedDate || booking.appointmentDate} at ${booking.confirmedTime || booking.appointmentTime}.`,
                 );
+                const feedbackMessage = text(
+                  `Bună! Aș dori să las o recenzie pentru experiența SPA NAZ, rezervarea ${booking.reference}.`,
+                  `Hello! I would like to leave feedback about my SPA NAZ experience, booking ${booking.reference}.`,
+                );
                 return (
                   <article key={booking.id} className="surface-card p-5 sm:p-7">
                     <div className="flex flex-wrap justify-between gap-4">
@@ -384,6 +388,17 @@ function AccountPage() {
                           {busy === booking.id && <Loader2 className="h-4 w-4 animate-spin" />}
                           {text("Anulează", "Cancel appointment")}
                         </button>
+                      )}
+                      {booking.status === "completed" && (
+                        <a
+                          href={whatsappLink(lang, feedbackMessage)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={button}
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          {text("Lasă o recenzie", "Leave feedback")}
+                        </a>
                       )}
                       {!active && (
                         <a href="/#rezervare" className={button}>
